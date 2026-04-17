@@ -12,8 +12,6 @@ import {
   GraduationCap,
   LayoutDashboard,
   Globe,
-  Menu,
-  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -145,7 +143,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <Link to="/profile" onClick={() => setSidebarOpen(false)} className="shrink-0">
             <div className="relative">
               <Avatar className="h-7 w-7 ring-1 ring-sidebar-primary/30">
-                <AvatarImage src={profile?.avatar_url} />
+                <AvatarImage src={profile?.avatar_url ?? undefined} />
                 <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-[10px] font-semibold">
                   {getInitials(profile?.full_name ?? 'U')}
                 </AvatarFallback>
@@ -200,7 +198,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           sidebarOpen={sidebarOpen}
           onSidebarOpen={() => setSidebarOpen(true)}
           onSidebarClose={() => setSidebarOpen(false)}
-          visibleNav={visibleNav}
           location={location}
         >
           {children}

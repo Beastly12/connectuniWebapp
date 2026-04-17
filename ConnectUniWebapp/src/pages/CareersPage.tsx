@@ -13,9 +13,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useJobs, useCreateJob, useApplyJob, useMyApplications } from '@/hooks/useCareers'
+import type { Job } from '@/hooks/useCareers'
 import { useAuth } from '@/hooks/useAuth'
-import { formatRelativeTime } from '@/lib/utils'
-import type { Job } from '@/lib/types'
+import { formatRelativeTime, cn } from '@/lib/utils'
 
 const JOB_TYPES = ['full-time', 'part-time', 'internship', 'contract', 'remote']
 

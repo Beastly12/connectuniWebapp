@@ -5,25 +5,27 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/useAuth'
-import { useMentorships, useUpdateMentorshipStatus } from '@/hooks/useMentorship'
+import { useIncomingRequests, useMyMentees, useUpdateMentorshipStatus } from '@/hooks/useMentorship'
 import { getInitials, formatRelativeTime } from '@/lib/utils'
 import { toast } from 'sonner'
 
 export default function AlumniDashboard() {
   const { profile } = useAuth()
-  const { data: mentorships = [], isLoading } = useMentorships(profile?.user_id, 'mentor')
+  const { data: requests = [], isLoading: requestsLoading } = useIncomingRequests()
+  const { data: mentees = [], isLoading: menteesLoading } = useMyMentees()
   const updateStatus = useUpdateMentorshipStatus()
+  const isLoading = requestsLoading || menteesLoading
 
-  const pending = mentorships.filter((m) => m.status === 'pending')
-  const active = mentorships.filter((m) => m.status === 'active')
+  const pending = requests.filter((m) => m.status === 'PENDING')
+  const active = mentees.filter((m) => m.status === 'ACTIVE')
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'there'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
-  async function handleAccept(mentorshipId: string) {
+  async function handleAccept(mentorshipId: number) {
     try {
       await updateStatus.mutateAsync({ id: mentorshipId, status: 'active' })
       toast.success('Mentorship accepted!')
@@ -32,7 +34,7 @@ export default function AlumniDashboard() {
     }
   }
 
-  async function handleDecline(mentorshipId: string) {
+  async function handleDecline(mentorshipId: number) {
     try {
       await updateStatus.mutateAsync({ id: mentorshipId, status: 'declined' })
       toast.success('Request declined')
@@ -117,31 +119,28 @@ export default function AlumniDashboard() {
                   <div key={m.id} className="glass-card rounded-xl p-4 space-y-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9 ring-1 ring-primary/20">
-                        <AvatarImage src={m.mentee?.avatar_url} />
                         <AvatarFallback className="text-xs bg-accent text-accent-foreground font-semibold">
                           {getInitials(m.mentee?.full_name ?? 'S')}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{m.mentee?.full_name}</p>
-                        <p className="text-xs text-muted-foreground">{m.mentee?.university ?? 'Student'}</p>
+                        <p className="text-xs text-muted-foreground">{m.mentee?.university_name ?? 'Student'}</p>
                       </div>
                       <span className="text-xs text-muted-foreground/60 shrink-0">
                         {formatRelativeTime(m.created_at)}
                       </span>
                     </div>
-                    {m.goals && m.goals.length > 0 && (
+                    {m.goal && (
                       <div className="flex flex-wrap gap-1">
-                        {m.goals.slice(0, 3).map((g) => (
-                          <Badge key={g} variant="secondary" className="text-[10px] h-5 px-1.5 capitalize bg-muted/60">
-                            {g}
-                          </Badge>
-                        ))}
+                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 capitalize bg-muted/60">
+                          {m.goal}
+                        </Badge>
                       </div>
                     )}
-                    {m.intro_message && (
+                    {m.message && (
                       <p className="text-xs text-muted-foreground/70 line-clamp-2 bg-muted/40 rounded-lg p-2.5 border border-border/30 italic">
-                        "{m.intro_message}"
+                        "{m.message}"
                       </p>
                     )}
                     <div className="flex gap-2">
@@ -192,7 +191,6 @@ export default function AlumniDashboard() {
                   <div key={m.id} className="glass-card rounded-xl p-4 space-y-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9 ring-1 ring-emerald-500/20">
-                        <AvatarImage src={m.mentee?.avatar_url} />
                         <AvatarFallback className="text-xs bg-accent text-accent-foreground font-semibold">
                           {getInitials(m.mentee?.full_name ?? 'S')}
                         </AvatarFallback>
@@ -200,7 +198,7 @@ export default function AlumniDashboard() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{m.mentee?.full_name}</p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {m.frequency} sessions · since {formatRelativeTime(m.created_at)}
+                          {m.meeting_frequency} sessions · since {formatRelativeTime(m.started_at)}
                         </p>
                       </div>
                       <Badge className="text-[10px] h-5 px-1.5 shrink-0 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">

@@ -18,26 +18,18 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
-import type { BackendRole } from '@/hooks/useAuth'
+import type { BackendRole, AuthProfile } from '@/hooks/useAuth'
 import type { Location } from 'react-router-dom'
-
-interface NavItem {
-  label: string
-  href: string
-  icon: React.ElementType
-  roles?: BackendRole[]
-}
 
 interface MobileAppLayoutProps {
   children: React.ReactNode
   role: BackendRole | null
-  profile: { full_name?: string; avatar_url?: string; user_id?: string } | null
+  profile: AuthProfile | null
   unreadCount: number
   onSignOut: () => void
   sidebarOpen: boolean
   onSidebarOpen: () => void
   onSidebarClose: () => void
-  visibleNav: NavItem[]
   location: Location
 }
 
@@ -58,7 +50,6 @@ export function MobileAppLayout({
   sidebarOpen,
   onSidebarOpen,
   onSidebarClose,
-  visibleNav,
   location,
 }: MobileAppLayoutProps) {
   const getDashboardHref = () => {
@@ -102,10 +93,10 @@ export function MobileAppLayout({
       <nav className="shrink-0 border-t border-border/30 bg-card/90 backdrop-blur-xl z-10">
         <div className="flex items-stretch h-16 px-2">
           {bottomTabs.map((tab) => {
-            const href = tab.isDashboard ? getDashboardHref() : (tab.isMore ? null : tab.href)
+            const href = 'isDashboard' in tab ? getDashboardHref() : ('isMore' in tab ? null : tab.href)
             const active = href ? isActive(href) : false
 
-            if (tab.isMore) {
+            if ('isMore' in tab) {
               return (
                 <button
                   key="more"
@@ -154,7 +145,7 @@ export function MobileAppLayout({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={profile?.avatar_url} />
+                  <AvatarImage src={profile?.avatar_url ?? undefined} />
                   <AvatarFallback className="bg-accent text-accent-foreground text-xs font-semibold">
                     {getInitials(profile?.full_name ?? 'U')}
                   </AvatarFallback>
