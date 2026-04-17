@@ -146,7 +146,7 @@ export function useAuth() {
 
   async function resetPassword(email: string): Promise<Error | null> {
     try {
-      const base = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+      const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
       await fetch(`${base}/auth/forgot-password?email=${encodeURIComponent(email)}`, { method: 'POST' })
       return null
     } catch (err) {
