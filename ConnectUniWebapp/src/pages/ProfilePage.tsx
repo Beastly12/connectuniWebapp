@@ -9,12 +9,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { VerificationBadge } from '@/components/ui/VerificationBadge'
 import { useAuth } from '@/hooks/useAuth'
+import { useFullProfile } from '@/hooks/useOnboarding'
 import { api } from '@/lib/api'
 import { getInitials } from '@/lib/utils'
 
 export default function ProfilePage() {
   const { profile, refreshProfile } = useAuth()
+  const { data: fullProfile } = useFullProfile()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -98,7 +101,10 @@ export default function ProfilePage() {
       <div className="relative p-6 space-y-5 max-w-xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 pt-2">
-          <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+            {fullProfile && <VerificationBadge status={fullProfile.verification_status} />}
+          </div>
           {!editing ? (
             <Button variant="outline" size="sm" className="h-8 text-xs border-border/50 hover:border-primary/30" onClick={startEdit}>
               <Pencil className="mr-1.5 h-3.5 w-3.5" />

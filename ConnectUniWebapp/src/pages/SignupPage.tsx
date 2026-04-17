@@ -9,12 +9,12 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 type Step = 'credentials' | 'role' | 'profile'
-type BackendRole = 'STUDENT' | 'ALUMNI' | 'MENTOR'
+type SignupRole = 'STUDENT' | 'ALUMNI' | 'PROFESSIONAL'
 
-const roles: { value: BackendRole; label: string; description: string; icon: React.ElementType }[] = [
-  { value: 'STUDENT', label: 'Student', description: 'Seeking mentorship, jobs, and guidance from alumni', icon: GradIcon },
+const roles: { value: SignupRole; label: string; description: string; icon: React.ElementType }[] = [
+  { value: 'STUDENT', label: 'Current Student', description: 'Seeking mentorship, jobs, and guidance from alumni', icon: GradIcon },
   { value: 'ALUMNI', label: 'Alumni', description: 'Give back by mentoring current students', icon: Users },
-  { value: 'MENTOR', label: 'Mentor / Professional', description: 'Industry expert offering career guidance', icon: Briefcase },
+  { value: 'PROFESSIONAL', label: 'Industry Professional', description: 'Industry expert offering career guidance', icon: Briefcase },
 ]
 
 const steps: { key: Step; label: string }[] = [
@@ -24,7 +24,7 @@ const steps: { key: Step; label: string }[] = [
 ]
 
 export default function SignupPage() {
-  const { signUp, signIn } = useAuth()
+  const { signUp } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('credentials')
   const [loading, setLoading] = useState(false)
@@ -32,7 +32,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<BackendRole | null>(null)
+  const [selectedRole, setSelectedRole] = useState<SignupRole | null>(null)
   const [fullName, setFullName] = useState('')
   const [university, setUniversity] = useState('')
   const [major, setMajor] = useState('')
@@ -72,15 +72,7 @@ export default function SignupPage() {
         return
       }
 
-      const loginError = await signIn(email, password)
-      if (loginError) {
-        toast.success('Account created! Please check your email to verify, then log in.')
-        navigate('/login')
-        return
-      }
-
-      toast.success('Welcome to ConnectUni!')
-      navigate(selectedRole === 'ALUMNI' || selectedRole === 'MENTOR' ? '/alumni-dashboard' : '/dashboard')
+      navigate('/auth/check-email', { state: { email }, replace: true })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -365,7 +357,7 @@ export default function SignupPage() {
                     <Label htmlFor="gradYear" className="text-sm font-medium text-foreground/80">Grad year</Label>
                     <Input
                       id="gradYear"
-                      placeholder={selectedRole === 'ALUMNI' ? '2023' : '2026'}
+                      placeholder={selectedRole === 'ALUMNI' ? '2023' : selectedRole === 'PROFESSIONAL' ? '2018' : '2027'}
                       type="number"
                       min="1950"
                       max="2040"

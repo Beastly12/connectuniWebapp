@@ -157,12 +157,13 @@ export interface Resource {
 }
 
 export interface Notification {
-  id: string
-  user_id: string
+  id: number
   type: string
-  title: string
-  message: string
+  sender_id: number
+  sender_name: string
+  sender_avatar: string | null
+  reference_id: number | null
+  body: string
   is_read: boolean
-  action_url?: string
   created_at: string
 }

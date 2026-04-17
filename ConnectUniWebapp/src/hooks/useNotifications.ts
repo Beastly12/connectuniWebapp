@@ -4,12 +4,13 @@ import { api } from '@/lib/api'
 
 export interface Notification {
   id: number
-  user_id: number
   type: string
-  title: string
-  message: string
+  sender_id: number
+  sender_name: string
+  sender_avatar: string | null
+  reference_id: number | null
+  body: string
   is_read: boolean
-  action_url?: string | null
   created_at: string
 }
 

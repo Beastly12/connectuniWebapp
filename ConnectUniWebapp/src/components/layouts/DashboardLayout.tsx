@@ -34,7 +34,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['STUDENT'] },
-  { label: 'Dashboard', href: '/alumni-dashboard', icon: LayoutDashboard, roles: ['ALUMNI', 'MENTOR'] },
+  { label: 'Dashboard', href: '/alumni-dashboard', icon: LayoutDashboard, roles: ['ALUMNI', 'MENTOR', 'PROFESSIONAL'] },
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['ADMIN'] },
   { label: 'Mentorship', href: '/mentorship', icon: Users },
   { label: 'Messages', href: '/messages', icon: MessageSquare },

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api, tokens } from '@/lib/api'
 
-export type BackendRole = 'STUDENT' | 'ALUMNI' | 'MENTOR' | 'ADMIN'
+export type BackendRole = 'STUDENT' | 'ALUMNI' | 'MENTOR' | 'ADMIN' | 'PROFESSIONAL'
 
 export interface AuthUser {
   id: number

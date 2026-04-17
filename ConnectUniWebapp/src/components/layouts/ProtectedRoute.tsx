@@ -12,6 +12,7 @@ const dashboardMap: Record<BackendRole, string> = {
   STUDENT: '/dashboard',
   ALUMNI: '/alumni-dashboard',
   MENTOR: '/alumni-dashboard',
+  PROFESSIONAL: '/alumni-dashboard',
   ADMIN: '/admin',
 }
 

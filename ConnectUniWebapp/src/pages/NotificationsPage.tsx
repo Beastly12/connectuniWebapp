@@ -33,7 +33,7 @@ export default function NotificationsPage() {
             <NotificationItem
               key={n.id}
               notification={n}
-              onMarkRead={(id) => markRead.mutate(id)}
+              onMarkRead={(id: number) => markRead.mutate(id)}
             />
           ))}
         </div>

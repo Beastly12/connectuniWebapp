@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Globe,
   GraduationCap,
@@ -17,6 +17,10 @@ import {
   Compass,
   Send,
   Lock,
+  X,
+  Loader2,
+  Paperclip,
+  FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
@@ -29,6 +33,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   useCommunities,
+  useMyCommunities,
   useCommunityMessages,
   useSendCommunityMessage,
   useJoinCommunity,
@@ -39,22 +44,250 @@ import { useAuth } from '@/hooks/useAuth'
 import { getInitials, formatRelativeTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
+// ─── Attachment Item ──────────────────────────────────────────────────────────
+
+type Attachment = { id: number; file_url: string; file_name: string; file_type: string }
+
+function AttachmentItem({ att }: { att: Attachment }) {
+  const [imgFailed, setImgFailed] = useState(false)
+
+  const isImage = att.file_type.startsWith('image/')
+  const ext = att.file_name.split('.').pop()?.toLowerCase() ?? ''
+
+  const fileIcon = ext === 'pdf'
+    ? <FileText className="h-8 w-8 text-red-400/80 shrink-0" />
+    : ['doc', 'docx'].includes(ext)
+      ? <FileText className="h-8 w-8 text-blue-400/80 shrink-0" />
+      : ['xls', 'xlsx'].includes(ext)
+        ? <FileText className="h-8 w-8 text-emerald-400/80 shrink-0" />
+        : ['zip', 'rar', '7z'].includes(ext)
+          ? <FileText className="h-8 w-8 text-amber-400/80 shrink-0" />
+          : <FileText className="h-8 w-8 text-muted-foreground/60 shrink-0" />
+
+  if (isImage && !imgFailed) {
+    return (
+      <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="block">
+        <img
+          src={att.file_url}
+          alt={att.file_name}
+          onError={() => setImgFailed(true)}
+          className="max-h-80 w-full rounded-xl object-cover border border-border/30 hover:opacity-95 transition-opacity cursor-zoom-in"
+        />
+        <p className="text-[10px] text-muted-foreground/50 mt-1 px-0.5 truncate">{att.file_name}</p>
+      </a>
+    )
+  }
+
+  return (
+    <a
+      href={att.file_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/40 px-4 py-3 hover:bg-muted/60 transition-colors group"
+    >
+      {fileIcon}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+          {att.file_name || 'Attachment'}
+        </p>
+        <p className="text-xs text-muted-foreground uppercase">{ext || 'file'} · click to open</p>
+      </div>
+    </a>
+  )
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Returns all descendants of a message (BFS), sorted oldest-first */
+function getThreadMessages(rootId: number, allMessages: CommunityMessage[]): CommunityMessage[] {
+  const result: CommunityMessage[] = []
+  const queue = [rootId]
+  while (queue.length > 0) {
+    const id = queue.shift()!
+    const children = allMessages.filter((m) => m.reply_to_id === id)
+    result.push(...children)
+    queue.push(...children.map((c) => c.id))
+  }
+  return result.sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  )
+}
+
+// ─── Reply Card ────────────────────────────────────────────────────────────────
+
+function ReplyCard({
+  reply,
+  communityId,
+  allMessages,
+  rootPostId,
+}: {
+  reply: CommunityMessage
+  communityId: number
+  allMessages: CommunityMessage[]
+  rootPostId: number
+}) {
+  const [showReplyInput, setShowReplyInput] = useState(false)
+  const [replyText, setReplyText] = useState('')
+  const sendMessage = useSendCommunityMessage()
+  const toggleReaction = useToggleReaction()
+
+  const hasLiked = reply.reactions.some((r) => r.emoji === '❤️' && r.reacted)
+  const totalReactions = reply.reactions.reduce((s, r) => s + r.count, 0)
+  const directReplyCount = allMessages.filter((m) => m.reply_to_id === reply.id).length
+  const otherReactions = reply.reactions.filter((r) => r.emoji !== '❤️' && r.count > 0)
+
+  // Show "↩ replying to @name" when this reply is nested (not a direct reply to the root post)
+  const isNested = reply.reply_to_id !== rootPostId
+  const parentSenderName = isNested
+    ? allMessages.find((m) => m.id === reply.reply_to_id)?.sender.full_name ?? null
+    : null
+
+  async function handleReply(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!replyText.trim()) return
+    try {
+      await sendMessage.mutateAsync({ communityId, content: replyText.trim(), replyToId: reply.id })
+      setReplyText('')
+      setShowReplyInput(false)
+    } catch {
+      toast.error('Failed to post reply')
+    }
+  }
+
+  return (
+    <div className="flex items-start gap-2.5">
+      <Avatar className="h-7 w-7 shrink-0 mt-0.5">
+        <AvatarImage src={reply.sender.avatar_url ?? undefined} />
+        <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+          {getInitials(reply.sender.full_name)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="bg-muted/40 border border-border/30 rounded-xl px-3 py-2">
+          {parentSenderName && (
+            <p className="text-[10px] text-primary/70 mb-1 flex items-center gap-1">
+              ↩ replying to <span className="font-semibold">{parentSenderName}</span>
+            </p>
+          )}
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs font-semibold">{reply.sender.full_name}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {formatRelativeTime(reply.created_at)}
+            </span>
+          </div>
+          {reply.content && (
+            <p className="text-xs text-foreground/80 leading-relaxed">{reply.content}</p>
+          )}
+          {reply.attachments.length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              {reply.attachments.map((att, i) => (
+                <AttachmentItem key={i} att={att} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Action row */}
+        <div className="flex items-center gap-3 mt-1.5 px-1 flex-wrap">
+          <button
+            type="button"
+            onClick={() => toggleReaction.mutate({ communityId, messageId: reply.id, emoji: '❤️' })}
+            className={cn(
+              'flex items-center gap-1 text-[11px] transition-colors',
+              hasLiked ? 'text-red-500' : 'text-muted-foreground hover:text-red-400'
+            )}
+          >
+            <Heart className={cn('h-3 w-3', hasLiked && 'fill-current')} />
+            {totalReactions > 0 && <span>{totalReactions}</span>}
+          </button>
+
+          {otherReactions.map((r) => (
+            <button
+              key={r.emoji}
+              type="button"
+              onClick={() => toggleReaction.mutate({ communityId, messageId: reply.id, emoji: r.emoji })}
+              className={cn(
+                'flex items-center gap-0.5 text-[11px] rounded-full px-1.5 py-0.5 border transition-colors',
+                r.reacted
+                  ? 'bg-accent border-primary/30 text-accent-foreground'
+                  : 'bg-muted/50 border-border/30 hover:bg-muted'
+              )}
+            >
+              {r.emoji} {r.count}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => setShowReplyInput((v) => !v)}
+            className={cn(
+              'flex items-center gap-1 text-[11px] transition-colors',
+              showReplyInput ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <MessageCircle className="h-3 w-3" />
+            Reply{directReplyCount > 0 && ` · ${directReplyCount}`}
+          </button>
+        </div>
+
+        {/* Inline reply input */}
+        {showReplyInput && (
+          <form onSubmit={handleReply} className="flex items-center gap-1.5 mt-2">
+            <input
+              autoFocus
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={`Reply to ${reply.sender.full_name}…`}
+              className="flex-1 h-7 rounded-lg border border-border/50 bg-muted/50 px-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <button
+              type="button"
+              onClick={() => { setShowReplyInput(false); setReplyText('') }}
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <button
+              type="submit"
+              disabled={!replyText.trim() || sendMessage.isPending}
+              className="h-7 px-2.5 rounded-lg gradient-primary text-white text-[11px] font-medium flex items-center gap-1 disabled:opacity-50 shrink-0"
+            >
+              {sendMessage.isPending
+                ? <Loader2 className="h-3 w-3 animate-spin" />
+                : <Send className="h-3 w-3" />
+              }
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Post Card ────────────────────────────────────────────────────────────────
 
 function PostCard({
   msg,
   communityId,
   community,
+  allMessages,
 }: {
   msg: CommunityMessage
   communityId: number
   community: Community | undefined
+  allMessages: CommunityMessage[]
 }) {
+  const [showReplyInput, setShowReplyInput] = useState(false)
+  const [showReplies, setShowReplies] = useState(false)
+  const [replyText, setReplyText] = useState('')
+  const sendMessage = useSendCommunityMessage()
   const toggleReaction = useToggleReaction()
+
+  const threadMessages = getThreadMessages(msg.id, allMessages)
+  const replyCount = threadMessages.length
   const totalReactions = msg.reactions.reduce((sum, r) => sum + r.count, 0)
   const hasLiked = msg.reactions.some((r) => r.emoji === '❤️' && r.reacted)
 
-  // Extract hashtags from content
   const hashtags = msg.content ? Array.from(msg.content.matchAll(/#\w+/g), (m) => m[0]) : []
   const contentText = msg.content ? msg.content.replace(/#\w+/g, '').trim() : ''
 
@@ -67,20 +300,33 @@ function PostCard({
           ? 'Mentor'
           : 'Member'
 
+  async function handleReply(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!replyText.trim()) return
+    try {
+      await sendMessage.mutateAsync({ communityId, content: replyText.trim(), replyToId: msg.id })
+      setReplyText('')
+      setShowReplyInput(false)
+      setShowReplies(true)
+    } catch {
+      toast.error('Failed to post reply')
+    }
+  }
+
   return (
     <div className="bg-card border border-border/50 rounded-2xl p-5 space-y-3.5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 shrink-0">
-            <AvatarImage src={msg.sender_avatar_url ?? undefined} />
+            <AvatarImage src={msg.sender.avatar_url ?? undefined} />
             <AvatarFallback className="bg-muted text-muted-foreground font-semibold text-sm">
-              {getInitials(msg.sender_name)}
+              {getInitials(msg.sender.full_name)}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-semibold text-sm">{msg.sender_name}</span>
+              <span className="font-semibold text-sm">{msg.sender.full_name}</span>
               <span className="text-[10px] font-medium text-primary flex items-center gap-0.5">
                 ✓ {roleBadge}
               </span>
@@ -122,6 +368,15 @@ function PostCard({
         </div>
       )}
 
+      {/* Attachments */}
+      {msg.attachments.length > 0 && (
+        <div className="space-y-2">
+          {msg.attachments.map((att, i) => (
+            <AttachmentItem key={i} att={att} />
+          ))}
+        </div>
+      )}
+
       {/* Reactions row */}
       {msg.reactions.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
@@ -150,9 +405,7 @@ function PostCard({
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={() =>
-              toggleReaction.mutate({ communityId, messageId: msg.id, emoji: '❤️' })
-            }
+            onClick={() => toggleReaction.mutate({ communityId, messageId: msg.id, emoji: '❤️' })}
             className={cn(
               'flex items-center gap-1.5 text-xs transition-colors',
               hasLiked ? 'text-red-500' : 'text-muted-foreground hover:text-red-400'
@@ -163,10 +416,14 @@ function PostCard({
           </button>
           <button
             type="button"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setShowReplyInput((v) => !v)}
+            className={cn(
+              'flex items-center gap-1.5 text-xs transition-colors',
+              showReplyInput ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            )}
           >
             <MessageCircle className="h-4 w-4" />
-            0
+            {replyCount}
           </button>
           <button
             type="button"
@@ -182,6 +439,64 @@ function PostCard({
           <Bookmark className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Inline reply input */}
+      {showReplyInput && (
+        <form onSubmit={handleReply} className="flex items-center gap-2">
+          <input
+            autoFocus
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder={`Reply to ${msg.sender.full_name}…`}
+            className="flex-1 h-8 rounded-lg border border-border/50 bg-muted/50 px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <button
+            type="button"
+            onClick={() => { setShowReplyInput(false); setReplyText('') }}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="submit"
+            disabled={!replyText.trim() || sendMessage.isPending}
+            className="h-8 px-3 rounded-lg gradient-primary text-white text-xs font-medium flex items-center gap-1.5 disabled:opacity-50 transition-opacity"
+          >
+            {sendMessage.isPending
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Send className="h-3.5 w-3.5" />
+            }
+            Reply
+          </button>
+        </form>
+      )}
+
+      {/* Replies thread */}
+      {replyCount > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowReplies((v) => !v)}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            {showReplies ? 'Hide' : 'View'} {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+          </button>
+
+          {showReplies && (
+            <div className="mt-3 space-y-3 pl-4 border-l-2 border-border/40">
+              {threadMessages.map((reply) => (
+                <ReplyCard
+                  key={reply.id}
+                  reply={reply}
+                  communityId={communityId}
+                  allMessages={allMessages}
+                  rootPostId={msg.id}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -200,11 +515,45 @@ const STATIC_FILTERS = [
 export default function CommunityPage() {
   useAuth()
   const { data: communities = [], isLoading: commLoading } = useCommunities()
+  const { data: myCommunities = [], isLoading: myCommLoading } = useMyCommunities()
   const [activeCommunity, setActiveCommunity] = useState<Community | null>(null)
   const [activeFilter, setActiveFilter] = useState('all')
   const [activeTab, setActiveTab] = useState<'feed' | 'trending' | 'discover'>('feed')
   const [showNewPost, setShowNewPost] = useState(false)
   const [newPostText, setNewPostText] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState<Array<{ file: File; preview: string | null }>>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? [])
+    if (!fileInputRef.current) return
+    fileInputRef.current.value = ''
+    const oversized = picked.filter((f) => f.size > 20 * 1024 * 1024)
+    if (oversized.length > 0) {
+      toast.error('Each file must be under 20 MB')
+      return
+    }
+    const entries = picked.map((f) => ({
+      file: f,
+      preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
+    }))
+    setSelectedFiles((prev) => [...prev, ...entries])
+  }
+
+  function removeFile(index: number) {
+    setSelectedFiles((prev) => {
+      const entry = prev[index]
+      if (entry?.preview) URL.revokeObjectURL(entry.preview)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  function clearFiles() {
+    setSelectedFiles((prev) => {
+      prev.forEach((e) => { if (e.preview) URL.revokeObjectURL(e.preview) })
+      return []
+    })
+  }
   const [searchQuery, setSearchQuery] = useState('')
 
   const { data: messages = [], isLoading: msgLoading } = useCommunityMessages(activeCommunity?.id)
@@ -245,7 +594,7 @@ export default function CommunityPage() {
     ? messages.filter(
         (m) =>
           m.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.sender_name.toLowerCase().includes(searchQuery.toLowerCase())
+          m.sender.full_name.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : messages
 
@@ -265,13 +614,18 @@ export default function CommunityPage() {
     if (match) setActiveCommunity(match)
   }
 
-  async function handlePost(e: React.FormEvent) {
+  async function handlePost(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!newPostText.trim() || !activeCommunity) return
+    if ((!newPostText.trim() && selectedFiles.length === 0) || !activeCommunity) return
     try {
-      await sendMessage.mutateAsync({ communityId: activeCommunity.id, content: newPostText.trim() })
+      await sendMessage.mutateAsync({
+        communityId: activeCommunity.id,
+        content: newPostText.trim() || undefined,
+        files: selectedFiles.length > 0 ? selectedFiles.map((e) => e.file) : undefined,
+      })
       setNewPostText('')
       setShowNewPost(false)
+      clearFiles()
       toast.success('Post shared!')
     } catch {
       toast.error('Failed to post')
@@ -329,30 +683,92 @@ export default function CommunityPage() {
                   }
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
-                  className="min-h-[100px] bg-muted/40 border-border/40 resize-none"
+                  className="min-h-[80px] bg-muted/40 border-border/40 resize-none"
                   disabled={!activeCommunity}
                 />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setShowNewPost(false)
-                      setNewPostText('')
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="gradient-primary border-0 text-white gap-1.5"
-                    disabled={!newPostText.trim() || !activeCommunity || sendMessage.isPending}
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                    Post
-                  </Button>
+
+                {/* File previews */}
+                {selectedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {selectedFiles.map((entry, i) => (
+                      <div key={i} className="relative rounded-xl border border-border/50 bg-muted/30 overflow-hidden">
+                        {entry.preview ? (
+                          <img
+                            src={entry.preview}
+                            alt={entry.file.name}
+                            className="max-h-48 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-3 px-4 py-3">
+                            <FileText className="h-8 w-8 text-primary/60 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{entry.file.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(entry.file.size / 1024).toFixed(0)} KB
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeFile(i)}
+                          className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm text-foreground hover:bg-background transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-2">
+                  {/* Attach file */}
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    <button
+                      type="button"
+                      disabled={!activeCommunity}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors px-2 py-1.5 rounded-lg hover:bg-muted/50"
+                    >
+                      <Paperclip className="h-3.5 w-3.5" />
+                      Attach file
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowNewPost(false)
+                        setNewPostText('')
+                        clearFiles()
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="gradient-primary border-0 text-white gap-1.5"
+                      disabled={(!newPostText.trim() && selectedFiles.length === 0) || !activeCommunity || sendMessage.isPending}
+                    >
+                      {sendMessage.isPending
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Send className="h-3.5 w-3.5" />
+                      }
+                      Post
+                    </Button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -475,12 +891,13 @@ export default function CommunityPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {displayedMessages.map((msg) => (
+                  {displayedMessages.filter((m) => !m.reply_to_id).map((msg) => (
                     <PostCard
                       key={msg.id}
                       msg={msg}
                       communityId={activeCommunity.id}
                       community={activeCommunity}
+                      allMessages={messages}
                     />
                   ))}
                 </div>
@@ -529,58 +946,60 @@ export default function CommunityPage() {
               )}
 
               {/* Your Communities */}
-              {communities.length > 0 && (
-                <div className="bg-card border border-border/50 rounded-2xl p-4 space-y-3">
-                  <div>
-                    <h3 className="font-semibold text-sm">Your Communities</h3>
-                    <p className="text-xs text-muted-foreground">Quick access to your groups</p>
+              <div className="bg-card border border-border/50 rounded-2xl p-4 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-sm">Your Communities</h3>
+                  <p className="text-xs text-muted-foreground">Communities you've joined</p>
+                </div>
+                {myCommLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-10 rounded-xl" />
+                    ))}
                   </div>
-                  {commLoading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-10 rounded-xl" />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {communities.slice(0, 5).map((comm) => (
-                        <button
-                          key={comm.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveCommunity(comm)
-                            setActiveFilter('all')
-                          }}
+                ) : myCommunities.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/60 py-2 text-center">
+                    You haven't joined any communities yet
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    {myCommunities.map((comm) => (
+                      <button
+                        key={comm.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveCommunity(comm)
+                          setActiveFilter('all')
+                        }}
+                        className={cn(
+                          'w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-all',
+                          activeCommunity?.id === comm.id
+                            ? 'bg-accent/60 text-foreground border border-primary/20'
+                            : 'hover:bg-muted/50 text-foreground/80 hover:text-foreground'
+                        )}
+                      >
+                        <div
                           className={cn(
-                            'w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-all',
+                            'flex h-7 w-7 items-center justify-center rounded-lg shrink-0 text-xs font-bold transition-all',
                             activeCommunity?.id === comm.id
-                              ? 'bg-accent/60 text-foreground border border-primary/20'
-                              : 'hover:bg-muted/50 text-foreground/80 hover:text-foreground'
+                              ? 'gradient-primary text-white shadow-glow-sm'
+                              : 'bg-muted text-muted-foreground'
                           )}
                         >
-                          <div
-                            className={cn(
-                              'flex h-7 w-7 items-center justify-center rounded-lg shrink-0 text-xs font-bold transition-all',
-                              activeCommunity?.id === comm.id
-                                ? 'gradient-primary text-white shadow-glow-sm'
-                                : 'bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {comm.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">{comm.name}</p>
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <Users className="h-2.5 w-2.5" />
-                              {comm.member_count}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                          {comm.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{comm.name}</p>
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Users className="h-2.5 w-2.5" />
+                            {comm.member_count}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Discover communities */}
               {activeTab === 'discover' && communities.length > 5 && (

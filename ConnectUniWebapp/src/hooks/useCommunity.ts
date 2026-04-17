@@ -35,11 +35,15 @@ export interface CommunityMessage {
   id: number
   community_id: number
   sender_id: number
-  sender_name: string
+  sender: {
+    id: number
+    full_name: string
+    avatar_url: string | null
+  }
   sender_avatar_url: string | null
   content: string | null
   reply_to_id: number | null
-  attachments: { url: string; filename: string }[]
+  attachments: { id: number; file_url: string; file_name: string; file_type: string }[]
   reactions: ReactionSummary[]
   created_at: string
 }
@@ -50,6 +54,13 @@ export function useCommunities() {
   return useQuery({
     queryKey: ['communities'],
     queryFn: () => api.get<Community[]>('/communities'),
+  })
+}
+
+export function useMyCommunities() {
+  return useQuery({
+    queryKey: ['communities', 'me'],
+    queryFn: () => api.get<Community[]>('/communities/me'),
   })
 }
 
@@ -132,14 +143,17 @@ export function useSendCommunityMessage() {
       communityId,
       content,
       replyToId,
+      files,
     }: {
       communityId: number
-      content: string
+      content?: string
       replyToId?: number
+      files?: File[]
     }) => {
       const fd = new FormData()
       if (content) fd.append('content', content)
       if (replyToId) fd.append('reply_to_id', String(replyToId))
+      files?.forEach((f) => fd.append('files', f))
       return api.postForm<CommunityMessage>(`/communities/${communityId}/messages`, fd)
     },
     onSuccess: (_d, vars) =>

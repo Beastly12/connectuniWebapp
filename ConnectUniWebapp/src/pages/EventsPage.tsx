@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Calendar, MapPin, Users, PlusCircle, Clock, Video, Sparkles, Loader2 } from 'lucide-react'
+import { Calendar, MapPin, Users, PlusCircle, Clock, Video, Sparkles, Loader2, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,11 +18,13 @@ import { cn } from '@/lib/utils'
 function EventCard({
   event,
   isRsvped,
+  loading,
   onRsvp,
   onCancel,
 }: {
   event: ApiEvent
   isRsvped: boolean
+  loading: boolean
   onRsvp: () => void
   onCancel: () => void
 }) {
@@ -101,16 +103,28 @@ function EventCard({
             {!isPast ? (
               <Button
                 size="sm"
+                disabled={loading}
                 className={cn(
-                  'h-7 px-3 text-xs font-semibold transition-all',
+                  'h-7 px-3 text-xs font-semibold transition-all min-w-[90px]',
                   isRsvped
                     ? 'border-border/50 text-muted-foreground bg-muted/50'
-                    : 'gradient-primary border-0 text-white shadow-glow-sm hover:opacity-90'
+                    : 'gradient-primary border-0 text-white shadow-glow-sm hover:opacity-90',
+                  loading && 'opacity-70 cursor-not-allowed'
                 )}
                 variant={isRsvped ? 'outline' : 'default'}
                 onClick={isRsvped ? onCancel : onRsvp}
               >
-                {isRsvped ? 'Cancel RSVP' : 'RSVP'}
+                {loading ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {isRsvped ? 'Cancelling…' : 'RSVPing…'}
+                  </span>
+                ) : isRsvped ? (
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle className="h-3 w-3" />
+                    Cancel RSVP
+                  </span>
+                ) : 'RSVP'}
               </Button>
             ) : (
               <Badge className="text-[10px] h-5 px-1.5 bg-muted/40 text-muted-foreground/60 border-border/30">
@@ -427,6 +441,10 @@ export default function EventsPage() {
                   key={event.id}
                   event={event}
                   isRsvped={rsvpedIds.has(event.id)}
+                  loading={
+                    (rsvp.isPending && rsvp.variables === event.id) ||
+                    (cancelRsvp.isPending && cancelRsvp.variables === event.id)
+                  }
                   onRsvp={() => handleRsvp(event.id)}
                   onCancel={() => handleCancel(event.id)}
                 />

@@ -3,10 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { ProtectedRoute } from '@/components/layouts/ProtectedRoute'
+import { OnboardingGuard } from '@/components/layouts/OnboardingGuard'
 
 import LoginPage from '@/pages/LoginPage'
 import SignupPage from '@/pages/SignupPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import CheckEmailPage from '@/pages/auth/CheckEmailPage'
+import EmailVerificationPage from '@/pages/auth/EmailVerificationPage'
+import ProfileSetupPage from '@/pages/onboarding/ProfileSetupPage'
+import MentorshipPrefsPage from '@/pages/onboarding/MentorshipPrefsPage'
 import StudentDashboard from '@/pages/StudentDashboard'
 import AlumniDashboard from '@/pages/AlumniDashboard'
 import AdminDashboard from '@/pages/AdminDashboard'
@@ -43,32 +48,56 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
+          {/* ── Public routes ── */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/check-email" element={<CheckEmailPage />} />
+          <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
 
-          {/* Student routes */}
+          {/* ── Onboarding routes (auth required, no onboarding guard) ── */}
+          <Route
+            path="/onboarding/profile"
+            element={
+              <ProtectedRoute>
+                <ProfileSetupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/onboarding/mentorship"
+            element={
+              <ProtectedRoute>
+                <MentorshipPrefsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ── Student dashboard ── */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute allowedRoles={['STUDENT']}>
-                <StudentDashboard />
+                <OnboardingGuard>
+                  <StudentDashboard />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
 
-          {/* Alumni/Professional routes */}
+          {/* ── Alumni / Professional / Mentor dashboard ── */}
           <Route
             path="/alumni-dashboard"
             element={
-              <ProtectedRoute allowedRoles={['ALUMNI', 'MENTOR']}>
-                <AlumniDashboard />
+              <ProtectedRoute allowedRoles={['ALUMNI', 'MENTOR', 'PROFESSIONAL']}>
+                <OnboardingGuard>
+                  <AlumniDashboard />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
 
-          {/* Admin routes */}
+          {/* ── Admin dashboard ── */}
           <Route
             path="/admin"
             element={
@@ -78,12 +107,14 @@ export default function App() {
             }
           />
 
-          {/* Shared authenticated routes */}
+          {/* ── Shared authenticated routes ── */}
           <Route
             path="/mentorship"
             element={
               <ProtectedRoute>
-                <MentorshipPage />
+                <OnboardingGuard>
+                  <MentorshipPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -91,7 +122,9 @@ export default function App() {
             path="/messages"
             element={
               <ProtectedRoute>
-                <MessagesPage />
+                <OnboardingGuard>
+                  <MessagesPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -99,7 +132,9 @@ export default function App() {
             path="/community"
             element={
               <ProtectedRoute>
-                <CommunityPage />
+                <OnboardingGuard>
+                  <CommunityPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -107,7 +142,9 @@ export default function App() {
             path="/notifications"
             element={
               <ProtectedRoute>
-                <NotificationsPage />
+                <OnboardingGuard>
+                  <NotificationsPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -115,7 +152,9 @@ export default function App() {
             path="/events"
             element={
               <ProtectedRoute>
-                <EventsPage />
+                <OnboardingGuard>
+                  <EventsPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -123,7 +162,9 @@ export default function App() {
             path="/careers"
             element={
               <ProtectedRoute>
-                <CareersPage />
+                <OnboardingGuard>
+                  <CareersPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -131,7 +172,9 @@ export default function App() {
             path="/resources"
             element={
               <ProtectedRoute>
-                <ResourcesPage />
+                <OnboardingGuard>
+                  <ResourcesPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -139,7 +182,9 @@ export default function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <ProfilePage />
+                <OnboardingGuard>
+                  <ProfilePage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
@@ -147,12 +192,14 @@ export default function App() {
             path="/settings"
             element={
               <ProtectedRoute>
-                <SettingsPage />
+                <OnboardingGuard>
+                  <SettingsPage />
+                </OnboardingGuard>
               </ProtectedRoute>
             }
           />
 
-          {/* Catch-all */}
+          {/* ── Catch-all ── */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

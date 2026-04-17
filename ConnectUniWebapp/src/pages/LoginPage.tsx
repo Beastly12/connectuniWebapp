@@ -2,14 +2,18 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { GraduationCap, Eye, EyeOff, Sparkles, Users, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
-import type { BackendRole } from '@/hooks/useAuth'
+import { api } from '@/lib/api'
+import { hasRoleProfile, getDashboardForRole } from '@/hooks/useOnboarding'
+import type { FullProfile } from '@/hooks/useOnboarding'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function LoginPage() {
-  const { signIn, role } = useAuth()
+  const { signIn } = useAuth()
+  const qc = useQueryClient()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -19,12 +23,6 @@ export default function LoginPage() {
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? null
 
-  function getDashboard(r: BackendRole | null) {
-    if (r === 'ADMIN') return '/admin'
-    if (r === 'ALUMNI' || r === 'MENTOR') return '/alumni-dashboard'
-    return '/dashboard'
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email || !password) { toast.error('Please fill in all fields'); return }
@@ -33,9 +31,26 @@ export default function LoginPage() {
     if (error) {
       toast.error(error.message)
       setLoading(false)
-    } else {
-      toast.success('Welcome back!')
-      navigate(from ?? getDashboard(role), { replace: true })
+      return
+    }
+
+    toast.success('Welcome back!')
+
+    // Check onboarding status and redirect to the correct step.
+    // Prime the React Query cache so OnboardingGuard doesn't make a second fetch.
+    try {
+      const fp = await api.get<FullProfile>('/profile/me')
+      qc.setQueryData(['full-profile'], fp)
+      if (!hasRoleProfile(fp)) {
+        navigate('/onboarding/profile', { replace: true })
+      } else if (!fp.mentorship_preferences) {
+        navigate('/onboarding/mentorship', { replace: true })
+      } else {
+        navigate(from ?? getDashboardForRole(fp.role), { replace: true })
+      }
+    } catch {
+      // Fallback — profile endpoint unavailable
+      navigate(from ?? '/dashboard', { replace: true })
     }
   }
 
