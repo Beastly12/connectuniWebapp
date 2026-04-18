@@ -1199,26 +1199,57 @@
 
 @media (max-width: 900px) {
   .lp-hero-grid { grid-template-columns: 1fr; }
-  .lp-hero-image { aspect-ratio: 3 / 2; }
+  .lp-hero-image { aspect-ratio: 16 / 9; max-height: 480px; }
   .lp-floating-stat { left: 16px; bottom: 16px; width: 200px; }
   .lp-floating-members { right: 16px; bottom: 16px; }
   .lp-about-grid { grid-template-columns: 1fr; gap: 32px; }
+  .lp-about { padding: 80px 0 70px; }
+  .lp-roles { padding: 60px 0 80px; }
   .lp-roles-header { flex-direction: column; gap: 16px; }
+  .lp-roles-header > div:first-child { max-width: 100%; }
+  .lp-roles-header .lp-body-l { max-width: 100%; }
+  .lp-why { padding: 80px 0; }
   .lp-why-header { flex-direction: column; gap: 24px; }
+  .lp-dash-preview { padding: 60px 0 80px; }
   .lp-dash-body { grid-template-columns: 1fr; }
+  .lp-mission { padding: 40px 0 80px; }
   .lp-footer-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 768px) {
   .lp-nav-links { display: none; }
+  .lp-hero-meta { grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
   .lp-roles-grid { grid-template-columns: 1fr; height: auto; }
   .lp-role-card { height: 240px; }
+  .lp-role-card .role-desc { max-width: 100%; }
+  .lp-role-card .role-name { font-size: 24px; }
   .lp-mission-card { padding: 48px 24px; }
   .lp-why-card { flex: 0 0 300px; }
   .lp-testimonials { padding: 80px 0; }
   .lp-scatter-av { display: none; }
   .lp-footer-grid { grid-template-columns: 1fr; }
-  .lp-hero-meta { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+}
+
+/* Compact phone: tighten dashboard layout */
+@media (max-width: 640px) {
+  .lp-dash-wrap { border-radius: 20px; padding: 3px; }
+  .lp-dash-inner { padding: 20px 16px; }
+  .lp-dash-header-row { margin-bottom: 16px; padding-bottom: 16px; }
+  .lp-dash-chart-box { min-height: auto; padding: 16px; }
+  .lp-dash-panel { min-height: auto; padding: 14px; }
+  .lp-bar-chart { height: 100px; margin-top: 20px; }
+}
+
+/* ≤ 600px: floating hero cards start to collide — remove stat, centre pill */
+@media (max-width: 600px) {
+  .lp-floating-stat { display: none; }
+  .lp-floating-members {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 16px;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1226,9 +1257,40 @@
   .lp-hero-meta { gap: 12px; }
   .lp-hero-ctas { flex-direction: column; }
   .lp-hero-ctas .lp-btn { width: 100%; justify-content: center; }
+
+  /* Hide active-mentors panel to reduce stacked dashboard height */
+  .lp-dash-panel.dark { display: none; }
+
   .lp-why-card { flex: 0 0 260px; }
+  .lp-why-scroll { gap: 14px; }
+
+  .lp-quote-card { padding: 28px 20px; border-radius: 20px; }
+  .lp-quote-card blockquote { font-size: clamp(16px, 4.5vw, 20px); }
   .lp-qfoot { flex-direction: column; align-items: flex-start; }
+
+  .lp-testimonials { padding: 60px 0; }
+  .lp-footer { padding: 64px 0 24px; }
+  .lp-footer-grid { gap: 28px; padding-bottom: 40px; }
   .lp-footer-bot { flex-direction: column; align-items: flex-start; }
+}
+
+/* ≤ 520px: nav too cramped — hide Sign In, just show hamburger + CTA */
+@media (max-width: 520px) {
+  .lp-nav { padding: 8px 8px 8px 18px; }
+  .lp-nav-right .lp-btn-ghost { display: none; }
+  .lp-btn.lp-btn-primary { font-size: 14px; padding: 11px 14px 11px 16px; }
+  .lp-btn.lp-btn-primary .lp-arrow-circle { width: 30px; height: 30px; }
+}
+
+/* Very small phones (≤ 380px) */
+@media (max-width: 380px) {
+  .lp-hero { padding: 88px 0 32px; }
+  /* 3-column stats too tight — collapse to 2+1 layout */
+  .lp-hero-meta { grid-template-columns: 1fr 1fr; }
+  .lp-hero-meta > div:last-child { grid-column: 1 / -1; }
+  .lp-why-card { flex: 0 0 240px; }
+  .lp-mission-card { border-radius: 24px; padding: 40px 20px; }
+  .lp-hero-image { aspect-ratio: 4 / 3; }
 }
 
 /* ─── Mobile nav drawer  ─────────────────────────────────────────────────────── */
