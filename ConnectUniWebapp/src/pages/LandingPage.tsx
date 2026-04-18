@@ -17,7 +17,7 @@ interface Testimonial {
   accent: string
   name: string
   role: string
-  avatarClass: string
+  avatarUrl: string
 }
 
 const TESTIMONIALS: Testimonial[] = [
@@ -26,21 +26,21 @@ const TESTIMONIALS: Testimonial[] = [
     accent: "opened doors I didn't even know existed",
     name: 'Aisha Mensah',
     role: 'CS Graduate · University of Ghana',
-    avatarClass: 'lp-av-1',
+    avatarUrl: 'https://i.pravatar.cc/80?img=47',
   },
   {
     quote: 'As an alumni, giving back through ConnectUni has been seamless and impactful. I love watching students grow through mentorship.',
     accent: 'seamless and impactful',
     name: 'James Okonkwo',
     role: 'Software Engineer · Alumni Mentor',
-    avatarClass: 'lp-av-2',
+    avatarUrl: 'https://i.pravatar.cc/80?img=12',
   },
   {
     quote: 'The community and events features completely transformed how I network. I got my internship through a connection I made on ConnectUni.',
     accent: 'completely transformed',
     name: 'Priya Sharma',
     role: 'Engineering Student · University of Lagos',
-    avatarClass: 'lp-av-3',
+    avatarUrl: 'https://i.pravatar.cc/80?img=44',
   },
 ]
 
@@ -331,11 +331,12 @@ export default function LandingPage() {
 
               {/* Right — image placeholder with floating UI cards */}
               <div style={{ position: 'relative' }}>
-                <div className="lp-hero-image lp-reveal" role="img" aria-label="Platform preview">
-                  <div className="ph-stripes" aria-hidden="true" />
-                  <div className="ph-label lp-mono" aria-hidden="true">
-                    student × alumni<br />connection platform
-                  </div>
+                <div className="lp-hero-image lp-reveal">
+                  <img
+                    src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80"
+                    alt="Students collaborating and networking on campus"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
                 </div>
 
                 {/* Floating stat card */}
@@ -360,10 +361,9 @@ export default function LandingPage() {
                 {/* Floating members pill */}
                 <div className="lp-floating-members" aria-hidden="true">
                   <div className="lp-avatar-stack">
-                    <div className="lp-av lp-av-1" />
-                    <div className="lp-av lp-av-2" />
-                    <div className="lp-av lp-av-3" />
-                    <div className="lp-av lp-av-4" />
+                    {[10, 20, 30, 40].map((n) => (
+                      <img key={n} className="lp-av" src={`https://i.pravatar.cc/40?img=${n}`} alt="" />
+                    ))}
                     <div className="lp-av lp-av-5">+</div>
                   </div>
                   <div className="text">
@@ -470,8 +470,8 @@ export default function LandingPage() {
             <div className="lp-roles-grid">
               {/* Students */}
               <article className="lp-role-card photo lp-reveal" tabIndex={0}>
-                <div className="ph-bg lp-ph-students" aria-hidden="true">
-                  <div className="lp-ph-stripes" />
+                <div className="ph-bg" aria-hidden="true">
+                  <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=75" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
                 </div>
                 <div className="top">
                   <span className="index lp-mono">01</span>
@@ -491,8 +491,8 @@ export default function LandingPage() {
 
               {/* Alumni */}
               <article className="lp-role-card photo lp-reveal lp-reveal-delay-1" tabIndex={0}>
-                <div className="ph-bg lp-ph-alumni" aria-hidden="true">
-                  <div className="lp-ph-stripes" />
+                <div className="ph-bg" aria-hidden="true">
+                  <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=600&q=75" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
                 </div>
                 <div className="top">
                   <span className="index lp-mono">02</span>
@@ -512,8 +512,8 @@ export default function LandingPage() {
 
               {/* Professionals */}
               <article className="lp-role-card photo lp-reveal lp-reveal-delay-2" tabIndex={0}>
-                <div className="ph-bg lp-ph-pros" aria-hidden="true">
-                  <div className="lp-ph-stripes" />
+                <div className="ph-bg" aria-hidden="true">
+                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=75" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
                 </div>
                 <div className="top">
                   <span className="index lp-mono">03</span>
@@ -909,19 +909,21 @@ export default function LandingPage() {
 
           {/* Decorative scattered avatars */}
           {[
-            { style: { top: '15%', left: '8%' }, bg: 'linear-gradient(135deg,#f4c7a8,#d89a6b)' },
-            { style: { top: '25%', right: '12%' }, bg: 'linear-gradient(135deg,#c8b8e0,#9985c2)' },
-            { style: { bottom: '30%', left: '15%' }, bg: 'linear-gradient(135deg,#d4e8b8,#a3c572)' },
-            { style: { bottom: '20%', right: '8%' }, bg: 'linear-gradient(135deg,#f7d4c9,#e08b6f)' },
-            { style: { top: '55%', left: '5%' }, bg: 'linear-gradient(135deg,#b8d4e8,#6b9ac2)' },
-            { style: { top: '40%', right: '5%' }, bg: 'linear-gradient(135deg,#e8d4b8,#c29a6b)' },
+            { pos: { top: '15%', left: '8%' }, img: 5 },
+            { pos: { top: '25%', right: '12%' }, img: 15 },
+            { pos: { bottom: '30%', left: '15%' }, img: 25 },
+            { pos: { bottom: '20%', right: '8%' }, img: 35 },
+            { pos: { top: '55%', left: '5%' }, img: 55 },
+            { pos: { top: '40%', right: '5%' }, img: 62 },
           ].map((av, i) => (
             <div
               key={i}
               className="lp-scatter-av"
-              style={{ ...av.style, background: av.bg }}
+              style={{ ...av.pos, overflow: 'hidden' }}
               aria-hidden="true"
-            />
+            >
+              <img src={`https://i.pravatar.cc/56?img=${av.img}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+            </div>
           ))}
 
           <div className="lp-testimonials-content">
@@ -960,10 +962,11 @@ export default function LandingPage() {
 
                   <div className="lp-qfoot">
                     <div className="person">
-                      <div
-                        className={`lp-av ${t.avatarClass}`}
+                      <img
+                        className="lp-av"
+                        src={t.avatarUrl}
+                        alt={t.name}
                         style={{ width: '40px', height: '40px' }}
-                        aria-hidden="true"
                       />
                       <div>
                         <div className="n">{t.name}</div>
