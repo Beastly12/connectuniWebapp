@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import { ProtectedRoute } from '@/components/layouts/ProtectedRoute'
 import { OnboardingGuard } from '@/components/layouts/OnboardingGuard'
 
+import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
 import SignupPage from '@/pages/SignupPage'
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
@@ -199,9 +200,9 @@ export default function App() {
             }
           />
 
-          {/* ── Catch-all ── */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* ── Landing / Catch-all ── */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
       <Toaster richColors position="top-right" />
