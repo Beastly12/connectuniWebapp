@@ -1,65 +1,140 @@
 import { useState } from 'react'
-import { Shield, Bell, Lock, LogOut, AlertTriangle, Sun, Moon } from 'lucide-react'
+import { Shield, Bell, Lock, LogOut, AlertTriangle, Sun, Moon, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
-import { DashboardLayout } from '@/components/layouts/DashboardLayout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
+import { DashboardLayout, C, useDarkMode } from '@/components/layouts/DashboardLayout'
 import { useAuth } from '@/hooks/useAuth'
-import { api } from '@/lib/api'
+import { api, getErrorMessage } from '@/lib/api'
 
-export default function SettingsPage() {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function SectionCard({ title, icon: IconComp, dark, children }: {
+  title: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon?: any
+  dark: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div style={{
+      borderRadius: 20,
+      border: `1.5px solid ${dark ? '#2A2A2A' : '#B8DCA0'}`,
+      background: dark ? 'rgba(212,232,184,0.04)' : 'rgba(212,232,184,0.06)',
+      overflow: 'hidden',
+      marginBottom: 16,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '14px 20px',
+        borderBottom: `1px solid ${dark ? '#2A2A2A' : '#D8EDCA'}`,
+      }}>
+        {IconComp && (
+          <div style={{
+            width: 30, height: 30, borderRadius: 10,
+            background: dark ? '#1A2A1A' : 'rgba(212,232,184,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <IconComp style={{ width: 14, height: 14, color: dark ? C.mint : '#4A7A40' }} />
+          </div>
+        )}
+        <span style={{ fontSize: 14, fontWeight: 700, color: dark ? C.darkText : C.charcoal }}>{title}</span>
+      </div>
+      <div style={{ padding: '18px 20px' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function ToggleRow({ label, sub, checked, onChange, dark }: {
+  label: string; sub: string; checked: boolean
+  onChange: (v: boolean) => void; dark: boolean
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '10px 0' }}>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: dark ? C.darkText : C.charcoal }}>{label}</div>
+        <div style={{ fontSize: 12, color: C.secondary, marginTop: 2 }}>{sub}</div>
+      </div>
+      <button
+        onClick={() => onChange(!checked)}
+        style={{
+          width: 44, height: 26, borderRadius: 100, border: 'none',
+          background: checked ? C.orange : (dark ? '#333' : '#D4D4D4'),
+          cursor: 'pointer', position: 'relative', flexShrink: 0,
+          transition: 'background 0.2s',
+        }}
+      >
+        <div style={{
+          position: 'absolute', top: 3, left: checked ? 22 : 3,
+          width: 20, height: 20, borderRadius: '50%', background: C.white,
+          transition: 'left 0.2s',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+        }} />
+      </button>
+    </div>
+  )
+}
+
+const inputStyle = (dark: boolean): React.CSSProperties => ({
+  width: '100%', borderRadius: 12,
+  border: `1.5px solid ${dark ? '#333' : C.border}`,
+  padding: '10px 14px', fontSize: 14,
+  fontFamily: 'Plus Jakarta Sans, sans-serif',
+  color: dark ? C.darkText : C.charcoal,
+  background: dark ? '#0E0E0E' : '#FAFAF8',
+  outline: 'none', boxSizing: 'border-box',
+})
+
+function PasswordStrength({ password }: { password: string }) {
+  const strength = Math.min(4, [
+    password.length >= 8,
+    /[A-Z]/.test(password),
+    /[0-9]/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ].filter(Boolean).length)
+
+  const colors = ['#F2F2F2', '#EF4B24', '#F5C842', '#7AB87A', '#4A9A4A']
+  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong']
+
+  if (!password) return null
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= strength ? colors[strength] : '#F2F2F2', transition: 'background 0.2s' }} />
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: colors[strength] || C.tertiary, fontWeight: 600 }}>{labels[strength]}</div>
+    </div>
+  )
+}
+
+function SettingsPageContent() {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
+  const { dark, toggleDark } = useDarkMode()
+
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [mentorshipAlerts, setMentorshipAlerts] = useState(true)
   const [messageAlerts, setMessageAlerts] = useState(true)
   const [profileVisible, setProfileVisible] = useState(true)
-
-  const [isDarkMode, setIsDarkMode] = useState(
-    () => !document.documentElement.classList.contains('light')
-  )
-
-  function handleThemeToggle(dark: boolean) {
-    setIsDarkMode(dark)
-    if (dark) {
-      document.documentElement.classList.remove('light')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      document.documentElement.classList.add('light')
-      localStorage.setItem('theme', 'light')
-    }
-  }
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [changingPassword, setChangingPassword] = useState(false)
 
-  async function handleChangePassword(e: React.SyntheticEvent<HTMLFormElement>) {
+  async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault()
-    if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match')
-      return
-    }
-    if (newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters')
-      return
-    }
+    if (newPassword !== confirmPassword) { toast.error('Passwords do not match'); return }
+    if (newPassword.length < 8) { toast.error('Password must be at least 8 characters'); return }
     setChangingPassword(true)
     try {
-      await api.post('/auth/change-password', {
-        current_password: currentPassword,
-        new_password: newPassword,
-      })
+      await api.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword })
       toast.success('Password updated!')
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
-    } catch {
-      toast.error('Failed to update password')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to update password'))
     } finally {
       setChangingPassword(false)
     }
@@ -70,222 +145,136 @@ export default function SettingsPage() {
     navigate('/login')
   }
 
-  const SwitchRow = ({
-    label,
-    description,
-    checked,
-    onCheckedChange,
-  }: {
-    label: string
-    description: string
-    checked: boolean
-    onCheckedChange: (v: boolean) => void
-  }) => (
-    <div className="flex items-center justify-between gap-4">
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium">{label}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
-    </div>
-  )
-
   return (
-    <DashboardLayout>
-      <div className="relative p-6 space-y-5 max-w-xl mx-auto">
-        {/* Header */}
-        <div className="pt-2">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="flex h-5 w-5 items-center justify-center rounded-md gradient-primary">
-              <Shield className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Settings</span>
+      <div style={{ maxWidth: 600, margin: '0 auto' }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={{ color: C.orange, fontSize: 14 }}>•</span>
+            <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.secondary }}>Settings</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your account preferences</p>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: dark ? C.darkText : C.charcoal, letterSpacing: '-0.01em', margin: 0 }}>
+            Preferences
+          </h1>
         </div>
 
-        {/* Account info */}
-        <Card>
-          <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium">Account</CardTitle>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-4 px-5 pb-5 space-y-3">
-            <div className="space-y-0.5">
-              <Label className="text-xs text-muted-foreground">Name</Label>
-              <p className="text-sm font-medium">{profile?.full_name}</p>
+        {/* Account */}
+        <SectionCard title="Account" icon={User} dark={dark}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Name</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: dark ? C.darkText : C.charcoal }}>{profile?.full_name ?? '—'}</div>
             </div>
-            <Separator className="opacity-50" />
-            <div className="space-y-0.5">
-              <Label className="text-xs text-muted-foreground">University</Label>
-              <p className="text-sm">{profile?.university ?? '—'}</p>
+            <div style={{ height: 1, background: dark ? '#222' : '#F0EDE6' }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>University</div>
+              <div style={{ fontSize: 15, color: dark ? C.darkText : C.charcoal }}>{profile?.university ?? '—'}</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
         {/* Appearance */}
-        <Card>
-          <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              {isDarkMode ? <Moon className="h-3.5 w-3.5 text-muted-foreground" /> : <Sun className="h-3.5 w-3.5 text-muted-foreground" />}
-              Appearance
-            </CardTitle>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-4 px-5 pb-5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">Dark mode</p>
-                <p className="text-xs text-muted-foreground">Switch between dark and light theme</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Sun className="h-3.5 w-3.5 text-muted-foreground" />
-                <Switch checked={isDarkMode} onCheckedChange={handleThemeToggle} />
-                <Moon className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SectionCard title="Appearance" icon={dark ? Moon : Sun} dark={dark}>
+          <div>
+            <ToggleRow
+              label="Dark Mode"
+              sub="Switch to the dark theme"
+              checked={dark}
+              onChange={toggleDark}
+              dark={dark}
+            />
+          </div>
+        </SectionCard>
 
         {/* Notifications */}
-        <Card>
-          <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Bell className="h-3.5 w-3.5 text-muted-foreground" />
-              Notifications
-            </CardTitle>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-4 px-5 pb-5 space-y-4">
-            <SwitchRow
-              label="Email notifications"
-              description="Receive updates via email"
-              checked={emailNotifications}
-              onCheckedChange={setEmailNotifications}
-            />
-            <Separator className="opacity-40" />
-            <SwitchRow
-              label="Mentorship alerts"
-              description="New requests and status changes"
-              checked={mentorshipAlerts}
-              onCheckedChange={setMentorshipAlerts}
-            />
-            <Separator className="opacity-40" />
-            <SwitchRow
-              label="Message alerts"
-              description="New community messages"
-              checked={messageAlerts}
-              onCheckedChange={setMessageAlerts}
-            />
-          </CardContent>
-        </Card>
+        <SectionCard title="Notifications" icon={Bell} dark={dark}>
+          <div>
+            <ToggleRow label="Email notifications" sub="Receive updates via email" checked={emailNotifications} onChange={setEmailNotifications} dark={dark} />
+            <div style={{ height: 1, background: dark ? '#222' : '#F0EDE6', margin: '0 -1px' }} />
+            <ToggleRow label="Mentorship alerts" sub="New requests and status changes" checked={mentorshipAlerts} onChange={setMentorshipAlerts} dark={dark} />
+            <div style={{ height: 1, background: dark ? '#222' : '#F0EDE6', margin: '0 -1px' }} />
+            <ToggleRow label="Message alerts" sub="New community messages" checked={messageAlerts} onChange={setMessageAlerts} dark={dark} />
+          </div>
+        </SectionCard>
 
         {/* Privacy */}
-        <Card>
-          <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-              Privacy
-            </CardTitle>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-4 px-5 pb-5">
-            <SwitchRow
-              label="Public profile"
-              description="Allow others to find your profile"
-              checked={profileVisible}
-              onCheckedChange={setProfileVisible}
-            />
-          </CardContent>
-        </Card>
+        <SectionCard title="Privacy" icon={Shield} dark={dark}>
+          <ToggleRow label="Public profile" sub="Allow others to find your profile" checked={profileVisible} onChange={setProfileVisible} dark={dark} />
+        </SectionCard>
 
-        {/* Change password */}
-        <Card className="border-border/50 bg-card/50">
-          <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-              Change Password
-            </CardTitle>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-4 px-5 pb-5">
-            <form onSubmit={handleChangePassword} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Current Password</Label>
-                <Input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  autoComplete="current-password"
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">New Password</Label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Confirm New Password</Label>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="h-9"
-                />
-              </div>
-              <Button
-                type="submit"
-                size="sm"
-                className="h-8 text-xs font-semibold gradient-primary border-0 text-white shadow-glow-sm hover:opacity-90 disabled:opacity-40"
-                disabled={changingPassword || !newPassword || !currentPassword}
-              >
-                {changingPassword ? (
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Updating…
-                  </span>
-                ) : 'Update Password'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* Security / Change password */}
+        <SectionCard title="Security" icon={Lock} dark={dark}>
+          <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Current Password</div>
+              <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} style={inputStyle(dark)} autoComplete="current-password" />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>New Password</div>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={inputStyle(dark)} autoComplete="new-password" />
+              <PasswordStrength password={newPassword} />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Confirm Password</div>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={inputStyle(dark)} autoComplete="new-password" />
+            </div>
+            <button
+              type="submit"
+              disabled={changingPassword || !newPassword || !currentPassword}
+              style={{
+                padding: '11px', borderRadius: 100, border: 'none',
+                background: changingPassword ? C.mint : C.orange,
+                color: changingPassword ? C.charcoal : C.white,
+                fontSize: 14, fontWeight: 700,
+                cursor: (changingPassword || !newPassword || !currentPassword) ? 'default' : 'pointer',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                opacity: (!newPassword || !currentPassword) ? 0.5 : 1,
+                transition: 'background 0.2s',
+              }}
+            >
+              {changingPassword ? 'Updating…' : 'Update Password'}
+            </button>
+          </form>
+        </SectionCard>
 
         {/* Danger zone */}
-        <Card className="border-destructive/20">
-          <CardHeader className="pb-3 pt-4 px-5">
-            <CardTitle className="text-sm font-medium text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Danger Zone
-            </CardTitle>
-          </CardHeader>
-          <Separator className="border-destructive/20" />
-          <CardContent className="pt-4 px-5 pb-5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">Sign out</p>
-                <p className="text-xs text-muted-foreground">Sign out of your account on this device</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive shrink-0"
-                onClick={handleSignOut}
-              >
-                <LogOut className="mr-1.5 h-3.5 w-3.5" />
-                Sign out
-              </Button>
+        <div style={{
+          borderRadius: 20,
+          border: `1.5px solid rgba(239,75,36,0.3)`,
+          background: 'rgba(239,75,36,0.04)',
+          padding: '18px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <AlertTriangle style={{ width: 14, height: 14, color: C.orange }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.orange }}>Danger Zone</span>
             </div>
-          </CardContent>
-        </Card>
+            <div style={{ fontSize: 13, color: C.secondary }}>Sign out of your account on this device</div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '9px 16px', borderRadius: 100,
+              background: 'transparent',
+              border: `1.5px solid rgba(239,75,36,0.4)`,
+              fontSize: 13, fontWeight: 600, color: C.orange,
+              cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, sans-serif',
+              flexShrink: 0,
+            }}
+          >
+            <LogOut style={{ width: 14, height: 14 }} />
+            Sign out
+          </button>
+        </div>
       </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <DashboardLayout>
+      <SettingsPageContent />
     </DashboardLayout>
   )
 }

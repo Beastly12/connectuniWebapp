@@ -82,15 +82,51 @@ export function getDashboardForRole(role: string): string {
   }
 }
 
+export interface ProfileCompletion {
+  percentage: number
+  missing_fields: string[]
+  completed_fields: string[]
+}
+
+function getCurrentUserCacheKey(): string {
+  const token = localStorage.getItem('access_token')
+  if (!token) return 'anonymous'
+
+  try {
+    const encoded = token.split('.')[1]
+    if (!encoded) return token
+
+    const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(normalized)) as { uid?: number | string }
+    if (payload.uid != null) return String(payload.uid)
+  } catch {
+    // Fall back to the raw token snapshot when decoding fails.
+  }
+
+  return token
+}
+
+export function getFullProfileQueryKey() {
+  return ['full-profile', getCurrentUserCacheKey()] as const
+}
+
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
 export function useFullProfile() {
   return useQuery({
-    queryKey: ['full-profile'],
+    queryKey: getFullProfileQueryKey(),
     queryFn: () => api.get<FullProfile>('/profile/me'),
     enabled: !!localStorage.getItem('access_token'),
     staleTime: 1000 * 60 * 5,
     retry: false,
+  })
+}
+
+export function useProfileCompletion() {
+  return useQuery({
+    queryKey: ['profile-completion'],
+    queryFn: () => api.get<ProfileCompletion>('/profiles/me/completion'),
+    enabled: !!localStorage.getItem('access_token'),
   })
 }
 

@@ -1,27 +1,46 @@
+import '@/styles/auth.css'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { GraduationCap, Eye, EyeOff, ArrowLeft, ArrowRight, CheckCircle, Users, Briefcase, GraduationCap as GradIcon, Sparkles } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, GraduationCap, Users, Briefcase, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/api'
 
 type Step = 'credentials' | 'role' | 'profile'
 type SignupRole = 'STUDENT' | 'ALUMNI' | 'PROFESSIONAL'
 
-const roles: { value: SignupRole; label: string; description: string; icon: React.ElementType }[] = [
-  { value: 'STUDENT', label: 'Current Student', description: 'Seeking mentorship, jobs, and guidance from alumni', icon: GradIcon },
-  { value: 'ALUMNI', label: 'Alumni', description: 'Give back by mentoring current students', icon: Users },
-  { value: 'PROFESSIONAL', label: 'Industry Professional', description: 'Industry expert offering career guidance', icon: Briefcase },
+const ROLES: { value: SignupRole; label: string; description: string; Icon: React.ElementType }[] = [
+  { value: 'STUDENT', label: 'Current Student', description: 'Seeking mentorship, jobs, and guidance from alumni', Icon: GraduationCap },
+  { value: 'ALUMNI', label: 'Alumni', description: 'Give back by mentoring current students', Icon: Users },
+  { value: 'PROFESSIONAL', label: 'Industry Professional', description: 'Industry expert offering career guidance', Icon: Briefcase },
 ]
 
-const steps: { key: Step; label: string }[] = [
-  { key: 'credentials', label: 'Account' },
-  { key: 'role', label: 'Role' },
-  { key: 'profile', label: 'Profile' },
-]
+function getStrength(pw: string): number {
+  if (!pw) return 0
+  let s = 0
+  if (pw.length >= 4) s++
+  if (pw.length >= 8) s++
+  if (/[A-Z]/.test(pw)) s++
+  if (/[0-9]/.test(pw)) s++
+  if (/[^A-Za-z0-9]/.test(pw)) s++
+  return s
+}
+
+function ArrowUpRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17L17 7M17 7H8M17 7V16" />
+    </svg>
+  )
+}
+
+function StarIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" />
+    </svg>
+  )
+}
 
 export default function SignupPage() {
   const { signUp } = useAuth()
@@ -37,6 +56,9 @@ export default function SignupPage() {
   const [university, setUniversity] = useState('')
   const [major, setMajor] = useState('')
   const [graduationYear, setGraduationYear] = useState('')
+
+  const strength = getStrength(password)
+  const strengthStatus = strength >= 4 ? 'ok' : 'on'
 
   function handleCredentials(e: React.FormEvent) {
     e.preventDefault()
@@ -67,335 +89,305 @@ export default function SignupPage() {
         major: major.trim(),
         role: selectedRole!,
       })
-      if (error) {
-        toast.error(error.message)
-        return
-      }
-
+      if (error) { toast.error(error.message); return }
       navigate('/auth/check-email', { state: { email }, replace: true })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Something went wrong')
+      toast.error(getErrorMessage(err, 'Something went wrong'))
     } finally {
       setLoading(false)
     }
   }
 
-  const stepIndex = steps.findIndex((s) => s.key === step)
-
-  return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left brand panel */}
-      <div className="hidden lg:flex lg:w-[400px] xl:w-[460px] flex-col relative overflow-hidden shrink-0">
-        <div className="absolute inset-0 gradient-primary" />
-        <div className="absolute inset-0 mesh-gradient" />
-        <div className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
-
-        <div className="relative flex flex-col h-full px-10 py-10 justify-between z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm border border-white/25">
-              <GraduationCap className="h-4.5 w-4.5 text-white" style={{ height: '1.1rem', width: '1.1rem' }} />
-            </div>
-            <span className="text-sm font-bold text-white/90 tracking-tight">ConnectUni</span>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1 mb-4">
-                <Sparkles className="h-3 w-3 text-white/80" />
-                <span className="text-xs text-white/80 font-medium">Join thousands of students</span>
-              </div>
-              <h2 className="text-[2rem] font-bold text-white leading-tight tracking-tight">
-                Your future<br />network starts<br />
-                <span className="text-white/65">here.</span>
-              </h2>
-              <p className="mt-4 text-sm text-white/55 leading-relaxed max-w-[280px]">
-                Create your free account and unlock mentorship, career insights, and community.
-              </p>
-            </div>
-
-            {/* Mini stats */}
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { num: '2,400+', label: 'Students' },
-                { num: '860+', label: 'Alumni mentors' },
-                { num: '94%', label: 'Success rate' },
-                { num: '48h', label: 'Avg. match time' },
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-xl bg-white/10 border border-white/15 px-4 py-3">
-                  <p className="text-lg font-bold text-white">{stat.num}</p>
-                  <p className="text-xs text-white/50 mt-0.5">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-xs text-white/25">
-            © {new Date().getFullYear()} ConnectUni. All rights reserved.
-          </p>
+  const photoPanel = (
+    <div className="au-col-photo alt-1">
+      <div className="au-members-float">
+        <div className="au-avatar-stack">
+          <div className="au-av av-3" />
+          <div className="au-av av-2" />
+          <div className="au-av av-4" />
+        </div>
+        <div className="au-members-text">
+          2,400+ Students
+          <small>Already joined</small>
         </div>
       </div>
-
-      {/* Right form panel */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 relative">
-        <div className="pointer-events-none absolute top-0 right-0 h-64 w-64 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, hsl(var(--gradient-from)), transparent 70%)' }}
-        />
-
-        {/* Mobile brand */}
-        <div className="lg:hidden mb-8 flex flex-col items-center gap-2.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-glow">
-            <GraduationCap className="h-5.5 w-5.5 text-white" style={{ height: '1.3rem', width: '1.3rem' }} />
-          </div>
-          <span className="text-base font-bold gradient-text">ConnectUni</span>
+      <div className="au-quote-float">
+        <div className="au-stars">
+          {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} />)}
         </div>
-
-        <div className="w-full max-w-[380px]">
-          {/* Step indicator */}
-          <div className="mb-8 flex items-center justify-center gap-0">
-            {steps.map((s, i) => (
-              <div key={s.key} className="flex items-center">
-                <div className="flex flex-col items-center gap-1.5">
-                  <div
-                    className={cn(
-                      'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300',
-                      i < stepIndex
-                        ? 'gradient-primary text-white shadow-glow-sm'
-                        : i === stepIndex
-                        ? 'gradient-primary text-white shadow-glow ring-4 ring-primary/20'
-                        : 'bg-muted text-muted-foreground/60'
-                    )}
-                  >
-                    {i < stepIndex ? <CheckCircle className="h-3.5 w-3.5" /> : i + 1}
-                  </div>
-                  <span className={cn(
-                    'text-[10px] font-semibold tracking-wide uppercase',
-                    i === stepIndex ? 'text-primary' : 'text-muted-foreground/50'
-                  )}>
-                    {s.label}
-                  </span>
-                </div>
-                {i < steps.length - 1 && (
-                  <div className={cn(
-                    'h-px w-12 mb-5 mx-1 transition-all duration-300',
-                    i < stepIndex ? 'gradient-primary h-0.5' : 'bg-border'
-                  )} />
-                )}
-              </div>
-            ))}
+        <blockquote>"I went from having no idea how to network to having three coffee chats lined up — all within my first two weeks."</blockquote>
+        <div className="au-qfoot">
+          <div className="au-av av-3" />
+          <div>
+            <div className="au-qfoot-name">Tom Bradley</div>
+            <div className="au-qfoot-role">Final year · Economics · University of Edinburgh</div>
           </div>
+        </div>
+      </div>
+    </div>
+  )
 
-          {/* Step: Credentials */}
-          {step === 'credentials' && (
-            <div className="space-y-5 animate-fade-in">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">Start with your email and password</p>
-              </div>
-
-              <form onSubmit={handleCredentials} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground/80">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@university.edu"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    required
-                    className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-                  />
+  return (
+    <div className="au-screen">
+      <div className="au-col-form">
+        {/* ── Credentials step ── */}
+        {step === 'credentials' && (
+          <>
+            <div className="au-form-header">
+              <Link to="/" className="au-brand">
+                <span className="au-logo-mark" />
+                ConnectUni
+              </Link>
+              <div className="au-step-pill">
+                <span>01/03</span>
+                <div className="au-step-seg">
+                  <span className="s on" /><span className="s" /><span className="s" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-sm font-medium text-foreground/80">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
+              </div>
+            </div>
+
+            <div className="au-form-body">
+              <span className="au-eyebrow">Start here</span>
+              <h1 className="au-display">Create your<br />account.</h1>
+              <p className="au-sub">Use your university email for automatic institution verification.</p>
+
+              <form onSubmit={handleCredentials}>
+                <div className="au-field">
+                  <label htmlFor="su-email">University email</label>
+                  <div className="au-input-wrap">
+                    <span className="au-icon-left"><Mail size={16} /></span>
+                    <input
+                      id="su-email"
+                      type="email"
+                      placeholder="you@university.ac.uk"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="au-field">
+                  <label htmlFor="su-password">Password</label>
+                  <div className="au-input-wrap">
+                    <span className="au-icon-left"><Lock size={16} /></span>
+                    <input
+                      id="su-password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="At least 8 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete="new-password"
                       required
-                      className="h-10 bg-muted/50 border-border/60 focus:border-primary/60 pr-10"
                     />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={() => setShowPassword((v) => !v)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <button type="button" className="au-eye-btn" onClick={() => setShowPassword(v => !v)} aria-label="Toggle password">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  {password.length > 0 && (
+                    <div className="au-strength">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} className={`seg${i < strength ? ` ${strengthStatus}` : ''}`} />
+                      ))}
+                    </div>
+                  )}
+                  {password.length > 0 && (
+                    <p className="au-hint">
+                      {strength <= 1 && 'Too short'}
+                      {strength === 2 && 'Weak — try adding uppercase or numbers'}
+                      {strength === 3 && 'Getting there — add a symbol'}
+                      {strength === 4 && 'Strong password'}
+                      {strength >= 5 && 'Very strong'}
+                    </p>
+                  )}
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity"
-                >
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+
+                <div className="au-cta-row">
+                  <button type="submit" className="au-btn">
+                    Continue
+                    <span className="au-arrow-circle"><ArrowUpRight /></span>
+                  </button>
+                </div>
               </form>
 
-              <p className="text-center text-sm text-muted-foreground">
+              <p style={{ marginTop: 24, fontSize: 13, color: '#6B6B6B', textAlign: 'center' }}>
                 Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">Sign in</Link>
+                <Link to="/login" style={{ color: '#1A1A1A', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
               </p>
             </div>
-          )}
 
-          {/* Step: Role */}
-          {step === 'role' && (
-            <div className="space-y-5 animate-fade-in">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">Choose your role</h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">This shapes your ConnectUni experience</p>
+            <div className="au-form-footer">
+              <span>© {new Date().getFullYear()} ConnectUni</span>
+            </div>
+          </>
+        )}
+
+        {/* ── Role step ── */}
+        {step === 'role' && (
+          <>
+            <div className="au-form-header">
+              <Link to="/" className="au-brand">
+                <span className="au-logo-mark" />
+                ConnectUni
+              </Link>
+              <div className="au-step-pill">
+                <span>02/03</span>
+                <div className="au-step-seg">
+                  <span className="s on" /><span className="s on" /><span className="s" />
+                </div>
               </div>
+            </div>
 
-              <div className="space-y-2.5">
-                {roles.map((r) => (
+            <div className="au-form-body">
+              <span className="au-eyebrow">Your role</span>
+              <h1 className="au-display">How will you use<br />ConnectUni?</h1>
+              <p className="au-sub">This shapes your experience and who you'll connect with.</p>
+
+              <div className="au-role-stack">
+                {ROLES.map((r) => (
                   <button
                     key={r.value}
                     type="button"
+                    className={`au-role-option${selectedRole === r.value ? ' selected' : ''}`}
                     onClick={() => setSelectedRole(r.value)}
-                    className={cn(
-                      'w-full rounded-xl border p-4 text-left transition-all duration-200 cursor-pointer',
-                      selectedRole === r.value
-                        ? 'border-primary/40 bg-accent shadow-glow-sm'
-                        : 'border-border/50 hover:border-border hover:bg-muted/30 bg-muted/20'
-                    )}
                   >
-                    <div className="flex items-center gap-3.5">
-                      <div className={cn(
-                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all',
-                        selectedRole === r.value
-                          ? 'gradient-primary text-white shadow-glow-sm'
-                          : 'bg-muted text-muted-foreground'
-                      )}>
-                        <r.icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold">{r.label}</p>
-                          {selectedRole === r.value && (
-                            <CheckCircle className="h-4 w-4 shrink-0 text-primary" />
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">{r.description}</p>
-                      </div>
+                    <div className="au-role-ico">
+                      <r.Icon size={22} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="au-role-title">{r.label}</div>
+                      <div className="au-role-desc">{r.description}</div>
+                    </div>
+                    <div className="au-role-chk">
+                      {selectedRole === r.value && <Check size={14} />}
                     </div>
                   </button>
                 ))}
               </div>
 
-              <div className="flex gap-2.5">
-                <Button variant="outline" onClick={() => setStep('credentials')} className="flex-1 h-10 border-border/50">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button
-                  onClick={handleRole}
-                  disabled={!selectedRole}
-                  className="flex-1 h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity disabled:opacity-40"
-                >
+              <div className="au-cta-row">
+                <button type="button" className="au-btn au-btn-ghost" onClick={() => setStep('credentials')}>
+                  ← Back
+                </button>
+                <button type="button" className="au-btn" style={{ flex: 1 }} disabled={!selectedRole} onClick={handleRole}>
                   Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                  <span className="au-arrow-circle"><ArrowUpRight /></span>
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Step: Profile */}
-          {step === 'profile' && (
-            <div className="space-y-5 animate-fade-in">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">Set up your profile</h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">Tell the community a little about yourself</p>
+            <div className="au-form-footer">
+              <span>Admins are invited by institution</span>
+              <span>© {new Date().getFullYear()} ConnectUni</span>
+            </div>
+          </>
+        )}
+
+        {/* ── Profile step ── */}
+        {step === 'profile' && (
+          <>
+            <div className="au-form-header">
+              <Link to="/" className="au-brand">
+                <span className="au-logo-mark" />
+                ConnectUni
+              </Link>
+              <div className="au-step-pill">
+                <span>03/03</span>
+                <div className="au-step-seg">
+                  <span className="s on" /><span className="s on" /><span className="s on" />
+                </div>
               </div>
+            </div>
 
-              <form onSubmit={handleProfile} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="fullName" className="text-sm font-medium text-foreground/80">Full name</Label>
-                  <Input
-                    id="fullName"
-                    placeholder="Jane Smith"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="university" className="text-sm font-medium text-foreground/80">University</Label>
-                  <Input
-                    id="university"
-                    placeholder="University of Example"
-                    value={university}
-                    onChange={(e) => setUniversity(e.target.value)}
-                    required
-                    className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="major" className="text-sm font-medium text-foreground/80">Major</Label>
-                    <Input
-                      id="major"
-                      placeholder="Computer Science"
-                      value={major}
-                      onChange={(e) => setMajor(e.target.value)}
+            <div className="au-form-body">
+              <span className="au-eyebrow">Profile</span>
+              <h1 className="au-display">Tell us about<br />yourself.</h1>
+              <p className="au-sub">This helps your matches feel relevant from day one.</p>
+
+              <form onSubmit={handleProfile}>
+                <div className="au-field">
+                  <label htmlFor="su-name">Full name</label>
+                  <div className="au-input-wrap">
+                    <input
+                      id="su-name"
+                      placeholder="Jane Smith"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       required
-                      className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="gradYear" className="text-sm font-medium text-foreground/80">Grad year</Label>
-                    <Input
-                      id="gradYear"
-                      placeholder={selectedRole === 'ALUMNI' ? '2023' : selectedRole === 'PROFESSIONAL' ? '2018' : '2027'}
-                      type="number"
-                      min="1950"
-                      max="2040"
-                      value={graduationYear}
-                      onChange={(e) => setGraduationYear(e.target.value)}
-                      required
-                      className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
                     />
                   </div>
                 </div>
-                <div className="flex gap-2.5">
-                  <Button variant="outline" type="button" onClick={() => setStep('role')} className="flex-1 h-10 border-border/50">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity disabled:opacity-40"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                        Creating…
-                      </span>
-                    ) : (
-                      <>
-                        Complete setup
-                        <CheckCircle className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+
+                <div className="au-field">
+                  <label htmlFor="su-uni">University</label>
+                  <div className="au-input-wrap">
+                    <input
+                      id="su-uni"
+                      placeholder="University of Example"
+                      value={university}
+                      onChange={(e) => setUniversity(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="au-field-row">
+                  <div className="au-field">
+                    <label htmlFor="su-major">Major / Course</label>
+                    <div className="au-input-wrap">
+                      <input
+                        id="su-major"
+                        placeholder="Computer Science"
+                        value={major}
+                        onChange={(e) => setMajor(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="au-field">
+                    <label htmlFor="su-gradyr">
+                      {selectedRole === 'ALUMNI' ? 'Graduated' : selectedRole === 'PROFESSIONAL' ? 'Grad year' : 'Expected grad'}
+                    </label>
+                    <div className="au-input-wrap">
+                      <input
+                        id="su-gradyr"
+                        type="number"
+                        placeholder={selectedRole === 'ALUMNI' ? '2022' : selectedRole === 'PROFESSIONAL' ? '2018' : '2027'}
+                        min={1950}
+                        max={2040}
+                        value={graduationYear}
+                        onChange={(e) => setGraduationYear(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="au-cta-row">
+                  <button type="button" className="au-btn au-btn-ghost" onClick={() => setStep('role')}>
+                    ← Back
+                  </button>
+                  <button type="submit" className="au-btn" style={{ flex: 1 }} disabled={loading}>
+                    {loading ? 'Creating…' : 'Create account'}
+                    <span className="au-arrow-circle"><ArrowUpRight /></span>
+                  </button>
                 </div>
               </form>
             </div>
-          )}
-        </div>
+
+            <div className="au-form-footer">
+              <span>
+                By creating an account you agree to our{' '}
+                <a href="#" style={{ color: '#EF4B24' }}>Terms</a>
+              </span>
+              <span>© {new Date().getFullYear()} ConnectUni</span>
+            </div>
+          </>
+        )}
       </div>
+
+      {photoPanel}
     </div>
   )
 }

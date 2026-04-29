@@ -1,0 +1,1291 @@
+/* ============================================================
+   ConnectUni — Auth & Onboarding Design System
+   All classes prefixed with .au- to avoid Tailwind conflicts
+   Design tokens: orange #EF4B24, charcoal #1A1A1A,
+   offwhite #F7F5F0, mint #D4E8B8, mint-deep #8fb65a
+   ============================================================ */
+
+/* ---------- Base split layout ---------- */
+.au-screen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #1A1A1A;
+  background: #FFFFFF;
+}
+
+@media (max-width: 1100px) {
+  .au-screen { grid-template-columns: 1fr; }
+}
+
+/* ---------- Form column ---------- */
+.au-col-form {
+  padding: 56px 72px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh; /* modern browsers: dynamic viewport avoids browser chrome overlap */
+  background: #FFFFFF;
+  position: relative;
+}
+
+@media (max-width: 1100px) {
+  .au-col-form { padding: 40px 32px; }
+}
+
+/* ---------- Form header ---------- */
+.au-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 56px;
+  flex-shrink: 0;
+}
+
+/* ---------- Brand ---------- */
+.au-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  color: #1A1A1A;
+}
+
+.au-logo-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #EF4B24;
+  position: relative;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.au-logo-mark::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  top: 5px;
+  left: 4px;
+}
+
+/* ---------- Step pill (01/03 indicator) ---------- */
+.au-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #E5E5E5;
+  background: #FFFFFF;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B6B6B;
+  white-space: nowrap;
+}
+
+.au-step-seg {
+  display: inline-flex;
+  gap: 3px;
+  background: #F2F2F2;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.au-step-seg .s {
+  width: 10px;
+  height: 3px;
+  background: #E5E5E5;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.au-step-seg .s.on { background: #EF4B24; }
+
+/* ---------- Form body & footer ---------- */
+.au-form-body {
+  flex: 1;
+  max-width: 460px;
+  width: 100%;
+}
+
+.au-form-footer {
+  margin-top: auto;
+  padding-top: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #6B6B6B;
+  flex-shrink: 0;
+}
+
+.au-form-footer a {
+  color: #1A1A1A;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.au-form-footer a:hover { color: #EF4B24; }
+
+/* ---------- Eyebrow ---------- */
+.au-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1A1A1A;
+}
+
+.au-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #EF4B24;
+  flex-shrink: 0;
+}
+
+/* ---------- Display heading ---------- */
+.au-display {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-top: 14px;
+  color: #1A1A1A;
+}
+
+.au-display-lg { font-size: 52px; }
+
+@media (max-width: 1100px) {
+  .au-display { font-size: 32px; }
+  .au-display-lg { font-size: 38px; }
+}
+
+.au-sub {
+  font-size: 16px;
+  color: #6B6B6B;
+  line-height: 1.5;
+  margin-top: 14px;
+  max-width: 420px;
+}
+
+/* ---------- Fields ---------- */
+.au-field { margin-top: 22px; }
+
+.au-field > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6B6B6B;
+  margin-bottom: 8px;
+}
+
+.au-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.au-field-row .au-field { margin-top: 0; }
+
+/* ---------- Input wrap ---------- */
+.au-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  border-radius: 14px;
+  padding: 2px 4px 2px 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.au-input-wrap:focus-within {
+  border-color: #1A1A1A;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.06);
+}
+
+.au-input-wrap .au-icon-left {
+  color: #9A9A9A;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.au-input-wrap input,
+.au-input-wrap select {
+  flex: 1;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 14px 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  background: transparent;
+  color: #1A1A1A;
+  width: 100%;
+  min-width: 0;
+}
+
+.au-input-wrap input::placeholder { color: #9A9A9A; }
+
+.au-input-wrap select {
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* ---------- Eye toggle button ---------- */
+.au-eye-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6B6B6B;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.au-eye-btn:hover { background: #F2F2F2; color: #1A1A1A; }
+
+/* ---------- Hint / forgot ---------- */
+.au-hint { margin-top: 8px; font-size: 12px; color: #9A9A9A; }
+
+.au-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.au-forgot-row a {
+  color: #EF4B24;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ---------- Password strength meter ---------- */
+.au-strength { margin-top: 10px; display: flex; gap: 4px; }
+.au-strength .seg { flex: 1; height: 4px; background: #F2F2F2; border-radius: 2px; display: block; }
+.au-strength .seg.on { background: #EF4B24; }
+.au-strength .seg.ok { background: #8fb65a; }
+
+/* ---------- Primary button ---------- */
+.au-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 8px 14px 24px;
+  border-radius: 999px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  width: 100%;
+  justify-content: space-between;
+  background: #EF4B24;
+  color: #FFFFFF;
+}
+
+.au-btn:hover { opacity: 0.9; }
+.au-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.au-btn-ghost {
+  background: transparent;
+  color: #1A1A1A;
+  padding: 12px 20px;
+  width: auto;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.au-btn-ghost:hover { background: #F2F2F2; opacity: 1; }
+
+.au-arrow-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  color: #EF4B24;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.au-cta-row { margin-top: 36px; display: flex; gap: 12px; align-items: center; }
+
+/* ---------- Divider & SSO ---------- */
+.au-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 28px 0 8px;
+  font-size: 11px;
+  color: #9A9A9A;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.au-divider::before,
+.au-divider::after { content: ''; flex: 1; height: 1px; background: #E5E5E5; }
+
+.au-sso-row { display: flex; gap: 10px; margin-top: 18px; }
+
+.au-sso-btn {
+  flex: 1;
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  padding: 12px;
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #1A1A1A;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: border-color 0.15s;
+}
+
+.au-sso-btn:hover { border-color: #1A1A1A; }
+
+/* ---------- Role option cards ---------- */
+.au-role-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
+
+.au-role-option {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1.5px solid #E5E5E5;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, background 0.2s;
+  text-align: left;
+  width: 100%;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.au-role-option:hover { border-color: #8fb65a; transform: translateY(-2px); }
+
+.au-role-option.selected { background: #EF4B24; border-color: #EF4B24; color: #FFFFFF; }
+
+.au-role-ico {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #F7F5F0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #6B6B6B;
+}
+
+.au-role-option.selected .au-role-ico { background: rgba(255,255,255,0.15); color: #FFFFFF; }
+.au-role-title { font-size: 17px; font-weight: 700; letter-spacing: -0.005em; }
+.au-role-desc { font-size: 13px; color: #6B6B6B; margin-top: 2px; }
+.au-role-option.selected .au-role-desc { color: rgba(255,255,255,0.75); }
+
+.au-role-chk {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #E5E5E5;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: transparent;
+}
+
+.au-role-option.selected .au-role-chk { background: #FFFFFF; border-color: #FFFFFF; color: #EF4B24; }
+
+/* ---------- Chips ---------- */
+.au-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+.au-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #E5E5E5;
+  background: #FFFFFF;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.au-chip:hover { border-color: #1A1A1A; }
+.au-chip.selected { background: #EF4B24; border-color: #EF4B24; color: #FFFFFF; }
+
+/* ---------- Big icon header ---------- */
+.au-big-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  background: #D4E8B8;
+  color: #1A1A1A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.au-big-icon.au-orange { background: rgba(239,75,36,0.1); color: #EF4B24; }
+
+/* ---------- Expiry pill ---------- */
+.au-expiry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #F2F2F2;
+  color: #6B6B6B;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-top: 20px;
+  text-transform: uppercase;
+}
+
+.au-expiry-dot { width: 6px; height: 6px; border-radius: 50%; background: #EF4B24; flex-shrink: 0; }
+
+/* ---------- AC.UK banner ---------- */
+.au-ac-banner {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #D4E8B8;
+  color: #1A1A1A;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.au-ac-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8fb65a;
+  flex-shrink: 0;
+}
+
+.au-ac-banner strong { font-weight: 700; }
+
+/* ---------- Success panel ---------- */
+.au-success-panel {
+  background: #D4E8B8;
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.au-sp-check {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8fb65a;
+  flex-shrink: 0;
+}
+
+.au-sp-title { font-size: 16px; font-weight: 700; }
+.au-sp-desc { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+
+/* ---------- Onboarding progress pill ---------- */
+.au-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 10px;
+  border-radius: 999px;
+  background: #1A1A1A;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.au-pp-seg {
+  display: inline-flex;
+  gap: 3px;
+  background: rgba(255,255,255,0.12);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.au-pp-seg .s { width: 10px; height: 3px; background: rgba(255,255,255,0.25); border-radius: 2px; display: inline-block; }
+.au-pp-seg .s.on { background: #EF4B24; }
+
+/* ---------- Variant tabs (Student/Alumni/Professional) ---------- */
+.au-variant-tabs {
+  display: flex;
+  gap: 6px;
+  background: #F7F5F0;
+  padding: 4px;
+  border-radius: 999px;
+  width: fit-content;
+  margin-bottom: 8px;
+}
+
+.au-variant-tab {
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B6B6B;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: all 0.15s;
+}
+
+.au-variant-tab.active { background: #FFFFFF; color: #1A1A1A; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+
+/* ---------- Year pills ---------- */
+.au-year-pills { display: flex; gap: 6px; margin-top: 8px; }
+
+.au-year-pill {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 999px;
+  border: 1.5px solid #E5E5E5;
+  background: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #1A1A1A;
+  white-space: nowrap;
+}
+
+.au-year-pill:hover { border-color: #1A1A1A; }
+.au-year-pill.active { background: #1A1A1A; color: #FFFFFF; border-color: #1A1A1A; }
+
+/* ---------- Upload zone ---------- */
+.au-upload-zone {
+  margin-top: 12px;
+  border: 2px dashed #8fb65a;
+  background: rgba(212,232,184,0.25);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: background 0.2s;
+  cursor: pointer;
+  width: 100%;
+  display: block;
+}
+
+.au-upload-zone:hover { background: rgba(212,232,184,0.4); }
+
+.au-upload-cloud {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #8fb65a;
+}
+
+.au-uz-title { font-size: 15px; font-weight: 600; color: #1A1A1A; }
+.au-uz-desc { font-size: 13px; color: #6B6B6B; margin-top: 4px; }
+
+.au-uz-formats { margin-top: 16px; display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
+
+.au-uz-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid #8fb65a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8fb65a;
+}
+
+/* Upload filled state */
+.au-upload-filled {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #8fb65a;
+  background: rgba(212,232,184,0.25);
+  margin-top: 12px;
+}
+
+.au-upload-filled .au-uf-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1A1A1A;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.au-upload-filled button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6B6B6B;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.au-upload-filled button:hover { color: #1A1A1A; }
+
+/* ---------- Goal pills (3-col mentorship) ---------- */
+.au-goals { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 8px; }
+
+.au-goal-pill {
+  padding: 18px 14px;
+  border-radius: 18px;
+  border: 1.5px solid #E5E5E5;
+  background: #FFFFFF;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  width: 100%;
+}
+
+.au-goal-pill:hover { border-color: #1A1A1A; }
+.au-goal-pill.selected { background: #EF4B24; border-color: #EF4B24; color: #FFFFFF; }
+
+.au-gp-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #F7F5F0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: #6B6B6B;
+}
+
+.au-goal-pill.selected .au-gp-ico { background: rgba(255,255,255,0.15); color: #FFFFFF; }
+.au-gp-title { font-size: 14px; font-weight: 700; letter-spacing: -0.005em; line-height: 1.25; color: inherit; }
+
+/* ---------- Slider ---------- */
+.au-slider-wrap { margin-top: 16px; position: relative; padding-top: 36px; }
+
+.au-slider-bubble {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: #1A1A1A;
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.au-slider-input {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+  accent-color: #EF4B24;
+  display: block;
+}
+
+.au-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #6B6B6B;
+}
+
+/* ---------- Format cards (3-col) ---------- */
+.au-formats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+
+.au-format-card {
+  padding: 20px 14px;
+  border-radius: 18px;
+  border: 1.5px solid #E5E5E5;
+  background: #FFFFFF;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  width: 100%;
+}
+
+.au-format-card:hover { border-color: #1A1A1A; transform: translateY(-2px); }
+.au-format-card.selected { border-color: #EF4B24; background: rgba(239,75,36,0.04); }
+
+.au-fc-illust {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: #F7F5F0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  color: #6B6B6B;
+}
+
+.au-format-card.selected .au-fc-illust { background: #D4E8B8; color: #1A1A1A; }
+.au-fc-title { font-size: 13px; font-weight: 700; color: #1A1A1A; }
+
+/* ---------- Photo column ---------- */
+.au-col-photo {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  background: linear-gradient(160deg, #d89a6b 0%, #8b6744 60%, #5a4028 100%);
+  color: #FFFFFF;
+  overflow: hidden;
+}
+
+.au-col-photo.alt-1 { background: linear-gradient(160deg, #c7a181, #6b4a2c); }
+.au-col-photo.alt-2 { background: linear-gradient(160deg, #4a5a6e, #20313f); }
+.au-col-photo.alt-3 { background: linear-gradient(160deg, #a8a385, #5a552f); }
+
+.au-col-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,255,255,0.05) 18px 19px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.au-col-photo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.4), transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (max-width: 1100px) {
+  .au-col-photo { display: none; }
+}
+
+/* ---------- Quote float ---------- */
+.au-quote-float {
+  position: absolute;
+  bottom: 40px;
+  left: 40px;
+  right: 40px;
+  background: #FFFFFF;
+  color: #1A1A1A;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+  z-index: 2;
+  max-width: 400px;
+}
+
+.au-stars { display: flex; gap: 3px; color: #EF4B24; margin-bottom: 12px; }
+
+.au-quote-float blockquote {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  color: #1A1A1A;
+}
+
+.au-qfoot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #E5E5E5;
+}
+
+.au-av { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#f4c7a8,#d89a6b); flex-shrink: 0; }
+.au-av.av-2 { background: linear-gradient(135deg,#c8b8e0,#9985c2); }
+.au-av.av-3 { background: linear-gradient(135deg,#d4e8b8,#a3c572); }
+.au-av.av-4 { background: linear-gradient(135deg,#f7d4c9,#e08b6f); }
+
+.au-qfoot-name { font-weight: 700; font-size: 14px; color: #1A1A1A; }
+.au-qfoot-role { font-size: 12px; color: #6B6B6B; margin-top: 2px; }
+
+/* ---------- Members float ---------- */
+.au-members-float {
+  position: absolute;
+  top: 80px;
+  right: 32px;
+  z-index: 2;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 999px;
+  padding: 8px 16px 8px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  color: #1A1A1A;
+}
+
+.au-avatar-stack { display: flex; }
+
+.au-avatar-stack .au-av {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #FFFFFF;
+  margin-left: -8px;
+}
+
+.au-avatar-stack .au-av:first-child { margin-left: 0; }
+
+.au-members-text { font-size: 12px; font-weight: 700; color: #1A1A1A; }
+
+.au-members-text small {
+  display: block;
+  font-size: 9px;
+  color: #6B6B6B;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: -2px;
+}
+
+/* ============================================================
+   RESPONSIVE — Tablet (≤1100px), Mobile (≤768px), Small (≤480px)
+   ============================================================ */
+
+/* ── Already covered at 1100px: single column, photo hidden ── */
+
+/* ── Tablet portrait & large phones (max 768px) ── */
+@media (max-width: 768px) {
+  .au-col-form {
+    padding: 36px 28px;
+    min-height: 100dvh;
+  }
+
+  .au-form-header {
+    margin-bottom: 36px;
+  }
+
+  .au-brand {
+    font-size: 15px;
+  }
+
+  .au-display {
+    font-size: 28px;
+  }
+
+  .au-display-lg {
+    font-size: 32px;
+  }
+
+  .au-sub {
+    font-size: 15px;
+  }
+
+  .au-big-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  .au-big-icon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .au-role-option {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .au-role-ico {
+    width: 42px;
+    height: 42px;
+  }
+
+  .au-role-title {
+    font-size: 15px;
+  }
+
+  .au-success-panel {
+    padding: 20px;
+    gap: 14px;
+  }
+
+  .au-cta-row {
+    margin-top: 28px;
+  }
+
+  .au-form-footer {
+    font-size: 12px;
+    gap: 8px;
+  }
+}
+
+/* ── Small phones (max 480px) ── */
+@media (max-width: 480px) {
+  .au-col-form {
+    padding: 24px 18px;
+  }
+
+  .au-form-header {
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .au-step-pill {
+    font-size: 10px;
+    padding: 5px 5px 5px 12px;
+  }
+
+  .au-progress-pill {
+    font-size: 11px;
+    padding: 6px 12px 6px 8px;
+  }
+
+  .au-display {
+    font-size: 26px;
+  }
+
+  .au-display-lg {
+    font-size: 28px;
+  }
+
+  .au-sub {
+    font-size: 14px;
+    margin-top: 10px;
+  }
+
+  .au-eyebrow {
+    font-size: 11px;
+  }
+
+  /* Stack 2-col field rows on small phones */
+  .au-field-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .au-field-row .au-field {
+    margin-top: 20px;
+  }
+
+  /* Input sizing */
+  .au-input-wrap input,
+  .au-input-wrap select {
+    padding: 12px 0;
+    font-size: 14px;
+  }
+
+  /* Year pills: allow wrapping */
+  .au-year-pills {
+    flex-wrap: wrap;
+  }
+
+  .au-year-pill {
+    flex: 0 0 calc(33.33% - 4px);
+    font-size: 12px;
+    padding: 10px 0;
+  }
+
+  /* Goal pills: compact */
+  .au-goals {
+    gap: 8px;
+  }
+
+  .au-goal-pill {
+    padding: 14px 10px;
+    border-radius: 14px;
+  }
+
+  .au-gp-ico {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 8px;
+  }
+
+  .au-gp-title {
+    font-size: 12px;
+  }
+
+  /* Format cards: compact */
+  .au-formats-grid {
+    gap: 8px;
+  }
+
+  .au-format-card {
+    padding: 14px 8px;
+    border-radius: 14px;
+  }
+
+  .au-fc-illust {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    margin-bottom: 6px;
+  }
+
+  .au-fc-title {
+    font-size: 12px;
+  }
+
+  /* Variant tabs: allow wrapping */
+  .au-variant-tabs {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .au-variant-tab {
+    flex: 1;
+    padding: 7px 10px;
+    text-align: center;
+    font-size: 11px;
+  }
+
+  /* SSO: stack buttons */
+  .au-sso-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .au-sso-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Role stack */
+  .au-role-stack {
+    margin-top: 20px;
+  }
+
+  .au-role-option {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .au-role-ico {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+
+  .au-role-title {
+    font-size: 14px;
+  }
+
+  .au-role-desc {
+    font-size: 12px;
+  }
+
+  /* CTA row: stack Back + primary on small screens */
+  .au-cta-row {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .au-btn-ghost {
+    width: 100%;
+    justify-content: center;
+    order: 2;
+  }
+
+  .au-cta-row .au-btn:not(.au-btn-ghost) {
+    width: 100%;
+  }
+
+  /* AC banner: compact */
+  .au-ac-banner {
+    padding: 12px 14px;
+    font-size: 12px;
+  }
+
+  /* Upload zone: compact */
+  .au-upload-zone {
+    padding: 24px 16px;
+  }
+
+  .au-upload-cloud {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+  }
+
+  .au-uz-title {
+    font-size: 14px;
+  }
+
+  /* Success panel */
+  .au-success-panel {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 16px;
+    gap: 12px;
+  }
+
+  /* Form footer: stack */
+  .au-form-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding-top: 24px;
+  }
+
+  /* Chips: smaller */
+  .au-chip {
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+
+  /* Button */
+  .au-btn {
+    font-size: 14px;
+    padding: 12px 8px 12px 20px;
+  }
+
+  .au-arrow-circle {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Big icon */
+  .au-big-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+  }
+
+  .au-big-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Expiry pill */
+  .au-expiry-pill {
+    font-size: 10px;
+    padding: 5px 10px;
+  }
+
+  /* Divider */
+  .au-divider {
+    margin: 20px 0 6px;
+    font-size: 10px;
+  }
+}
+
+/* ── Very small phones (max 360px) ── */
+@media (max-width: 360px) {
+  .au-col-form {
+    padding: 20px 16px;
+  }
+
+  .au-display {
+    font-size: 24px;
+  }
+
+  .au-display-lg {
+    font-size: 26px;
+  }
+
+  /* 3-col grids switch to 1-col */
+  .au-goals,
+  .au-formats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .au-goal-pill,
+  .au-format-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .au-gp-ico,
+  .au-fc-illust {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .au-format-card .au-fc-illust {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .au-gp-title,
+  .au-fc-title {
+    font-size: 14px;
+    white-space: normal;
+  }
+}

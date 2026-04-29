@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { ProtectedRoute } from '@/components/layouts/ProtectedRoute'
 import { OnboardingGuard } from '@/components/layouts/OnboardingGuard'
+import { GuestRoute } from '@/components/layouts/GuestRoute'
 
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
@@ -49,10 +50,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          {/* ── Public routes ── */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          {/* ── Public routes (guest only) ── */}
+          <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+          <Route path="/signup" element={<GuestRoute><SignupPage /></GuestRoute>} />
+          <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
           <Route path="/auth/check-email" element={<CheckEmailPage />} />
           <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
 
@@ -201,7 +202,7 @@ export default function App() {
           />
 
           {/* ── Landing / Catch-all ── */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<GuestRoute><LandingPage /></GuestRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

@@ -1,11 +1,25 @@
+import '@/styles/auth.css'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { GraduationCap, ArrowLeft, Mail, CheckCircle } from 'lucide-react'
+import { Mail, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+
+function ArrowUpRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17L17 7M17 7H8M17 7V16" />
+    </svg>
+  )
+}
+
+function StarIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" />
+    </svg>
+  )
+}
 
 export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth()
@@ -27,97 +41,97 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12 relative">
-      {/* Ambient glow */}
-      <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full opacity-8"
-        style={{ background: 'radial-gradient(circle, hsl(var(--gradient-via) / 0.15), transparent 70%)' }}
-      />
-
-      <div className="relative mb-8 flex flex-col items-center gap-2.5">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-glow">
-          <GraduationCap className="h-5.5 w-5.5 text-white" style={{ height: '1.3rem', width: '1.3rem' }} />
+    <div className="au-screen">
+      {/* ── Form column ── */}
+      <div className="au-col-form">
+        <div className="au-form-header">
+          <Link to="/" className="au-brand">
+            <span className="au-logo-mark" />
+            ConnectUni
+          </Link>
+          <Link to="/login" className="au-back-link" style={{ fontSize: 13, color: '#6B6B6B', textDecoration: 'none' }}>
+            ← Back to sign in
+          </Link>
         </div>
-        <span className="text-base font-bold gradient-text">ConnectUni</span>
+
+        <div className="au-form-body">
+          {sent ? (
+            <>
+              <div className="au-big-icon" style={{ background: '#D4E8B8' }}>
+                <Mail size={44} />
+              </div>
+              <span className="au-eyebrow">Email sent</span>
+              <h1 className="au-display">Check your<br />inbox.</h1>
+              <p className="au-sub">
+                We sent a reset link to <strong style={{ color: '#1A1A1A' }}>{email}</strong>. Links expire in 1 hour.
+              </p>
+              <p className="au-hint" style={{ marginTop: 12 }}>Check spam if you don't see it within 5 minutes.</p>
+              <div className="au-cta-row">
+                <button type="button" className="au-btn" onClick={() => setSent(false)}>
+                  Try a different email
+                  <span className="au-arrow-circle"><ArrowUpRight /></span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="au-big-icon au-orange">
+                <Lock size={44} />
+              </div>
+              <span className="au-eyebrow">Account recovery</span>
+              <h1 className="au-display au-display-lg">Forgot your<br />password?</h1>
+              <p className="au-sub">Happens to the best of us. Enter the email on your account and we'll send a reset link.</p>
+
+              <form onSubmit={handleSubmit}>
+                <div className="au-field">
+                  <label htmlFor="fp-email">Email</label>
+                  <div className="au-input-wrap">
+                    <span className="au-icon-left"><Mail size={16} /></span>
+                    <input
+                      id="fp-email"
+                      type="email"
+                      placeholder="you@university.ac.uk"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="au-cta-row">
+                  <button type="submit" className="au-btn" disabled={loading}>
+                    {loading ? 'Sending…' : 'Send reset link'}
+                    <span className="au-arrow-circle"><ArrowUpRight /></span>
+                  </button>
+                </div>
+                <p className="au-hint" style={{ marginTop: 14 }}>Links expire in 1 hour. Check spam if you don't see one within 5 minutes.</p>
+              </form>
+            </>
+          )}
+        </div>
+
+        <div className="au-form-footer">
+          <span>Remembered it? <Link to="/login">Sign in</Link></span>
+          <span>© {new Date().getFullYear()} ConnectUni</span>
+        </div>
       </div>
 
-      <div className="relative w-full max-w-[360px]">
-        {sent ? (
-          <div className="flex flex-col items-center gap-5 text-center glass-card rounded-2xl p-8">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-glow">
-              <CheckCircle className="h-8 w-8 text-white" />
-            </div>
+      {/* ── Photo column ── */}
+      <div className="au-col-photo">
+        <div className="au-quote-float">
+          <div className="au-stars">
+            {Array.from({ length: 5 }).map((_, i) => <StarIcon key={i} />)}
+          </div>
+          <blockquote>"Lost my password the night before a big intro call. Recovery took ninety seconds."</blockquote>
+          <div className="au-qfoot">
+            <div className="au-av av-4" />
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                We sent a password reset link to{' '}
-                <span className="font-semibold text-foreground">{email}</span>
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground/60">
-              Didn't receive it? Check your spam folder or try again.
-            </p>
-            <div className="flex w-full flex-col gap-2">
-              <Button variant="outline" className="w-full h-10 border-border/50" onClick={() => setSent(false)}>
-                Try again
-              </Button>
-              <Link to="/login" className="w-full">
-                <Button variant="ghost" className="w-full h-10 text-muted-foreground hover:text-foreground">
-                  <ArrowLeft className="mr-2 h-3.5 w-3.5" />
-                  Back to sign in
-                </Button>
-              </Link>
+              <div className="au-qfoot-name">Jordan Pierce</div>
+              <div className="au-qfoot-role">Final year · Business · LSE</div>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold tracking-tight">Reset your password</h1>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Enter your email and we'll send you a reset link
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm font-medium text-foreground/80">Email address</Label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@university.edu"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    required
-                    className="h-10 pl-9 bg-muted/50 border-border/60 focus:border-primary/60"
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity"
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Sending…
-                  </span>
-                ) : 'Send reset link'}
-              </Button>
-            </form>
-
-            <Link
-              to="/login"
-              className="mt-6 flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to sign in
-            </Link>
-          </>
-        )}
+        </div>
       </div>
     </div>
   )

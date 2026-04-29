@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
 import { useSendMentorshipRequest } from '@/hooks/useMentorship'
 import type { MentorProfile } from '@/hooks/useMentorship'
+import { getErrorMessage } from '@/lib/api'
 
 const GOALS = [
   'Career guidance',
@@ -78,8 +79,8 @@ export function MentorRequestDialog({
       })
       toast.success('Mentorship request sent!')
       handleClose()
-    } catch {
-      toast.error('Failed to send request. Please try again.')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to send mentorship request'))
     }
   }
 

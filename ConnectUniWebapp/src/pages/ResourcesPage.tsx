@@ -1,235 +1,353 @@
 import { useState } from 'react'
-import { BookOpen, Link as LinkIcon, PlusCircle, Search } from 'lucide-react'
+import { BookOpen, Link as LinkIcon, FileText, Video, Settings, Search, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { DashboardLayout } from '@/components/layouts/DashboardLayout'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { DashboardLayout, C, AvatarCircle, useDarkMode } from '@/components/layouts/DashboardLayout'
 import { useResources, useCreateResource } from '@/hooks/useResources'
+import type { Resource } from '@/hooks/useResources'
 import { useAuth } from '@/hooks/useAuth'
-import { getInitials, formatRelativeTime } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/api'
+import { formatRelativeTime } from '@/lib/utils'
 
-const CATEGORIES = ['career', 'academics', 'tech', 'finance', 'wellbeing', 'other']
+const CATEGORIES = ['All', 'Career', 'Academics', 'Tech', 'Finance', 'Wellbeing', 'Other']
+const RESOURCE_TYPES = ['Link', 'PDF', 'Video', 'Article', 'Tool']
 
-function ShareResourceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+const TYPE_ICON: Record<string, React.ElementType> = { Link: LinkIcon, PDF: FileText, Video: Video, Article: BookOpen, Tool: Settings }
+const TYPE_COLOR: Record<string, string> = { link: '#6B7FA3', pdf: '#C4705A', video: C.orange, article: '#8B6FA8', tool: '#4A8A6A' }
+
+function ShareModal({ onClose, dark }: { onClose: () => void; dark: boolean }) {
   const { profile } = useAuth()
   const createResource = useCreateResource()
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [url, setUrl] = useState('')
-  const [category, setCategory] = useState('career')
-  const [fileType, setFileType] = useState('link')
+  const [form, setForm] = useState({ title: '', url: '', category: 'career', type: 'link', desc: '' })
+  const [shared, setShared] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!profile || !title || !url) return
+  const inputStyle: React.CSSProperties = {
+    width: '100%', borderRadius: 12,
+    border: `1.5px solid ${dark ? '#333' : C.border}`,
+    padding: '10px 14px', fontSize: 14,
+    fontFamily: 'Plus Jakarta Sans, sans-serif',
+    color: dark ? C.darkText : C.charcoal,
+    background: dark ? '#0E0E0E' : '#FAFAF8',
+    outline: 'none', boxSizing: 'border-box',
+  }
+
+  async function handleShare() {
+    if (!profile || !form.title || !form.url) return
     try {
       await createResource.mutateAsync({
         uploadedBy: profile.user_id,
-        title,
-        description: description || undefined,
-        url,
-        category,
-        fileType,
+        title: form.title,
+        description: form.desc || undefined,
+        url: form.url,
+        category: form.category,
+        fileType: form.type,
       })
+      setShared(true)
       toast.success('Resource shared!')
-      onOpenChange(false)
-      setTitle(''); setDescription(''); setUrl('')
-    } catch {
-      toast.error('Failed to share resource')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to share resource'))
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-base font-semibold">Share Resource</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Title</Label>
-            <Input className="h-9" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Resource name" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">URL</Label>
-            <Input className="h-9" type="url" value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="https://" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 500, backdropFilter: 'blur(4px)' }} />
+      <div style={{
+        position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
+        zIndex: 600, width: 500,
+        background: dark ? '#161616' : C.white,
+        borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.18)',
+        animation: 'fadeUp 0.22s ease-out',
+      }}>
+        <style>{`@keyframes fadeUp { from { opacity:0; transform:translate(-50%,-46%); } to { opacity:1; transform:translate(-50%,-50%); } }`}</style>
+        <div style={{
+          padding: '22px 24px 18px',
+          borderBottom: `1px solid ${dark ? '#2A2A2A' : C.border}`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: dark ? C.darkText : C.charcoal }}>Share a Resource</div>
+          <button onClick={onClose} style={{ background: 'none', border: `1px solid ${dark ? '#333' : C.border}`, borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X style={{ width: 14, height: 14, color: C.secondary }} />
+          </button>
+        </div>
+
+        <div style={{ padding: '20px 24px 24px' }}>
+          {['Title', 'URL'].map(field => (
+            <div key={field} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{field}</div>
+              <input
+                value={(form as Record<string, string>)[field.toLowerCase()]}
+                onChange={e => setForm(f => ({ ...f, [field.toLowerCase()]: e.target.value }))}
+                placeholder={field === 'URL' ? 'https://…' : 'Resource title…'}
+                style={inputStyle}
+              />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Type</Label>
-              <Select value={fileType} onValueChange={setFileType}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['link', 'pdf', 'video', 'article', 'tool'].map((t) => (
-                    <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          ))}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Category</div>
+              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} style={{ ...inputStyle, appearance: 'none' }}>
+                {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Type</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {RESOURCE_TYPES.map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setForm(f => ({ ...f, type: t.toLowerCase() }))}
+                    style={{
+                      padding: '5px 11px', borderRadius: 100,
+                      border: `1.5px solid ${form.type === t.toLowerCase() ? C.orange : (dark ? '#333' : C.border)}`,
+                      background: form.type === t.toLowerCase() ? 'rgba(239,75,36,0.08)' : 'transparent',
+                      color: form.type === t.toLowerCase() ? C.orange : (dark ? C.darkText : C.charcoal),
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
-            <Textarea className="resize-none text-sm" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Brief description…" />
+
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.secondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Description (Optional)</div>
+            <textarea
+              value={form.desc}
+              onChange={e => setForm(f => ({ ...f, desc: e.target.value }))}
+              placeholder="Why is this resource useful?"
+              style={{ ...inputStyle, height: 80, resize: 'none', lineHeight: 1.55 } as React.CSSProperties}
+            />
           </div>
-          <DialogFooter className="gap-2 pt-1">
-            <Button variant="outline" size="sm" type="button" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" type="submit" disabled={createResource.isPending}>
-              {createResource.isPending ? 'Sharing…' : 'Share'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+
+          <button
+            onClick={handleShare}
+            disabled={createResource.isPending}
+            style={{
+              width: '100%', padding: 14, borderRadius: 100, border: 'none',
+              background: shared ? C.mint : C.orange,
+              color: shared ? '#2A6A20' : C.white,
+              fontSize: 15, fontWeight: 700,
+              cursor: shared ? 'default' : 'pointer',
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              transition: 'background 0.25s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            {shared ? '✓ Resource Shared!' : 'Share Resource ↗'}
+          </button>
+        </div>
+      </div>
+    </>
   )
 }
 
-export default function ResourcesPage() {
-  const [category, setCategory] = useState('all')
-  const [search, setSearch] = useState('')
-  const [shareOpen, setShareOpen] = useState(false)
-  const { data: resources = [], isLoading } = useResources(category !== 'all' ? category : undefined)
+function ResourceCard({ resource, dark }: { resource: Resource; dark: boolean }) {
+  const [hov, setHov] = useState(false)
+  const typeKey = (resource.file_type ?? 'link').toLowerCase()
+  const color = TYPE_COLOR[typeKey] ?? C.secondary
+  const IconComp = TYPE_ICON[resource.file_type ?? 'link'] ?? LinkIcon
 
-  const filtered = resources.filter((r) => {
-    if (!search) return true
-    const q = search.toLowerCase()
+  return (
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: dark ? '#1A1A1A' : C.white,
+        borderRadius: 20,
+        border: `1px solid ${dark ? '#2A2A2A' : C.border}`,
+        padding: 20,
+        display: 'flex', flexDirection: 'column', gap: 12,
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        transform: hov ? 'translateY(-4px)' : 'none',
+        boxShadow: hov ? `0 12px 32px rgba(0,0,0,${dark ? 0.25 : 0.09})` : 'none',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 12,
+          background: color + '18',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <IconComp style={{ width: 17, height: 17, color }} />
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 100, background: color + '18', color, textTransform: 'uppercase' }}>
+            {resource.file_type ?? 'Link'}
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 100, background: dark ? '#2A2A2A' : '#F0EDE6', color: C.secondary, textTransform: 'capitalize' }}>
+            {resource.category}
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: dark ? C.darkText : C.charcoal, marginBottom: 6, lineHeight: 1.3 }}>
+          {resource.title}
+        </div>
+        {resource.description && (
+          <p style={{
+            fontSize: 13, color: C.secondary, lineHeight: 1.55, margin: 0,
+            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>
+            {resource.description}
+          </p>
+        )}
+      </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginTop: 'auto', paddingTop: 12,
+        borderTop: `1px solid ${dark ? '#2A2A2A' : '#F0EDE6'}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <AvatarCircle name={resource.uploader?.full_name ?? 'U'} size={24} />
+          <span style={{ fontSize: 12, color: C.tertiary }}>
+            {formatRelativeTime(resource.created_at)}
+          </span>
+        </div>
+        <button
+          onClick={() => window.open(resource.url, '_blank')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '7px 14px', borderRadius: 100, border: 'none',
+            background: C.orange, color: C.white,
+            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            fontFamily: 'Plus Jakarta Sans, sans-serif',
+          }}
+        >
+          Open ↗
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ResourcesPageContent() {
+  const { dark } = useDarkMode()
+  const [cat, setCat] = useState('All')
+  const [query, setQuery] = useState('')
+  const [shareOpen, setShareOpen] = useState(false)
+  const { data: resources = [], isLoading } = useResources(cat !== 'All' ? cat.toLowerCase() : undefined)
+
+  const filtered = resources.filter(r => {
+    if (!query) return true
+    const q = query.toLowerCase()
     return r.title.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)
   })
 
   return (
-    <DashboardLayout>
-      <div className="relative p-6 space-y-6 max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4 pt-2">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="flex h-5 w-5 items-center justify-center rounded-md gradient-primary">
-                <BookOpen className="h-3 w-3 text-white" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Resources</span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">Resources</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Curated resources from the ConnectUni community</p>
-          </div>
-          <Button onClick={() => setShareOpen(true)} size="sm" className="h-9 text-xs font-semibold gradient-primary border-0 text-white shadow-glow-sm hover:opacity-90">
-            <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
-            Share
-          </Button>
-        </div>
-
-        {/* Search + filter */}
-        <div className="space-y-3">
-          <div className="relative max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+    <>
+      <div>
+        {/* Search bar + share button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+            padding: '12px 18px', borderRadius: 100,
+            background: dark ? '#1A1A1A' : C.white,
+            border: `1.5px solid ${dark ? '#2A2A2A' : C.border}`,
+          }}>
+            <Search style={{ width: 16, height: 16, color: C.tertiary, flexShrink: 0 }} />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
               placeholder="Search resources…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9"
+              style={{
+                flex: 1, border: 'none', outline: 'none',
+                background: 'transparent', fontSize: 14,
+                color: dark ? C.darkText : C.charcoal,
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+              }}
             />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-            {['all', ...CATEGORIES].map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCategory(c)}
-                className={cn(
-                  'shrink-0 rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors',
-                  category === c
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                )}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={() => setShareOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '12px 20px', borderRadius: 100, border: 'none',
+              background: C.orange, color: C.white,
+              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'Plus Jakarta Sans, sans-serif', flexShrink: 0,
+            }}
+          >
+            <Plus style={{ width: 14, height: 14 }} /> Share Resource
+          </button>
+        </div>
+
+        {/* Category pills */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+          {CATEGORIES.map(c => (
+            <button
+              key={c}
+              onClick={() => setCat(c)}
+              style={{
+                padding: '7px 16px', borderRadius: 100,
+                border: `1.5px solid ${cat === c ? C.orange : (dark ? '#333' : C.border)}`,
+                background: cat === c ? C.orange : 'transparent',
+                color: cat === c ? C.white : (dark ? C.darkText : C.charcoal),
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                transition: 'all 0.15s',
+              }}
+            >
+              {c}
+            </button>
+          ))}
         </div>
 
         {/* Content */}
         {isLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 w-full rounded-lg" />
+              <div key={i} style={{ height: 200, borderRadius: 20, background: dark ? '#1A1A1A' : '#F0EDE6' }} />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <Card className="border-dashed border-border/40 bg-muted/10">
-            <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/40 border border-border/30">
-                <BookOpen className="h-7 w-7 text-muted-foreground/30" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground">No resources found</p>
-                <p className="text-xs text-muted-foreground/60 mt-0.5">
-                  {search ? 'Try different keywords' : 'Be the first to share one'}
-                </p>
-              </div>
-              <Button size="sm" className="h-8 text-xs gradient-primary border-0 text-white shadow-glow-sm hover:opacity-90" onClick={() => setShareOpen(true)}>
-                <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
-                Share a resource
-              </Button>
-            </CardContent>
-          </Card>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 60, textAlign: 'center' }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: 24,
+              background: dark ? '#2A2A2A' : '#F0EDE6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+            }}>
+              <BookOpen style={{ width: 36, height: 36, color: C.orange }} />
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: dark ? C.darkText : C.charcoal, marginBottom: 8 }}>
+              No resources found
+            </div>
+            <div style={{ fontSize: 14, color: C.secondary, marginBottom: 24 }}>
+              {query ? 'Try different keywords' : 'Be the first to share something useful.'}
+            </div>
+            <button
+              onClick={() => setShareOpen(true)}
+              style={{
+                padding: '12px 28px', borderRadius: 100, border: 'none',
+                background: C.orange, color: C.white,
+                fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+              }}
+            >
+              Share First Resource ↗
+            </button>
+          </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {filtered.map((resource) => (
-              <div key={resource.id} className="glass-card rounded-xl p-4 space-y-2.5 hover:border-primary/25 hover:shadow-glow-sm transition-all duration-200">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-bold line-clamp-1 flex-1 min-w-0">{resource.title}</h3>
-                  <Badge className="text-[10px] h-5 px-1.5 shrink-0 capitalize bg-accent/60 text-accent-foreground border-border/30">
-                    {resource.category}
-                  </Badge>
-                </div>
-                {resource.description && (
-                  <p className="text-xs text-muted-foreground/75 line-clamp-2 leading-relaxed">{resource.description}</p>
-                )}
-                <div className="flex items-center justify-between pt-0.5">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={resource.uploader?.avatar_url} />
-                      <AvatarFallback className="text-[9px] bg-muted">
-                        {getInitials(resource.uploader?.full_name ?? 'U')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs text-muted-foreground/70">{formatRelativeTime(resource.created_at)}</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="h-7 px-2.5 text-xs font-semibold gradient-primary border-0 text-white shadow-glow-sm hover:opacity-90"
-                    onClick={() => window.open(resource.url, '_blank')}
-                  >
-                    <LinkIcon className="mr-1 h-3 w-3" />
-                    Open
-                  </Button>
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
+            {filtered.map(r => <ResourceCard key={r.id} resource={r} dark={dark} />)}
           </div>
         )}
       </div>
 
-      <ShareResourceDialog open={shareOpen} onOpenChange={setShareOpen} />
+      {shareOpen && <ShareModal onClose={() => setShareOpen(false)} dark={dark} />}
+    </>
+  )
+}
+
+export default function ResourcesPage() {
+  return (
+    <DashboardLayout>
+      <ResourcesPageContent />
     </DashboardLayout>
   )
 }

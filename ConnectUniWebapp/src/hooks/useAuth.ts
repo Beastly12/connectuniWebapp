@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { api, tokens } from '@/lib/api'
+import { useQueryClient } from '@tanstack/react-query'
+import { api, getErrorMessage, tokens } from '@/lib/api'
 
 export type BackendRole = 'STUDENT' | 'ALUMNI' | 'MENTOR' | 'ADMIN' | 'PROFESSIONAL'
 
@@ -81,7 +82,7 @@ function boot() {
   if (!user) { tokens.clear(); broadcast({ loading: false }); return }
 
   broadcast({ user, role })
-  api.get<AuthProfile>('/profiles/me')
+  api.get<AuthProfile>('/profile/me')
     .then((profile) => broadcast({ profile, loading: false }))
     .catch(() => broadcast({ loading: false }))
 }
@@ -92,6 +93,7 @@ boot()
 
 export function useAuth() {
   const [state, setLocalState] = useState<AuthState>(_state)
+  const qc = useQueryClient()
 
   useEffect(() => {
     setLocalState(_state) // sync immediately in case boot finished before mount
@@ -104,17 +106,18 @@ export function useAuth() {
       const data = await api.loginForm<{ access_token: string; refresh_token: string }>(
         '/auth/login', email, password
       )
+      qc.clear()
       tokens.set(data.access_token, data.refresh_token)
       const user = userFromToken(data.access_token)
       const role = roleFromToken(data.access_token)
       broadcast({ user, role })
       try {
-        const profile = await api.get<AuthProfile>('/profiles/me')
+        const profile = await api.get<AuthProfile>('/profile/me')
         broadcast({ profile })
       } catch { /* profile may not exist yet */ }
       return null
     } catch (err) {
-      return err instanceof Error ? err : new Error('Login failed')
+      return new Error(getErrorMessage(err, 'Login failed'))
     }
   }
 
@@ -131,7 +134,7 @@ export function useAuth() {
       await api.postPublic('/auth/register', payload)
       return null
     } catch (err) {
-      return err instanceof Error ? err : new Error('Registration failed')
+      return new Error(getErrorMessage(err, 'Registration failed'))
     }
   }
 
@@ -141,22 +144,22 @@ export function useAuth() {
       try { await api.post('/auth/logout', undefined, { refresh_token: rt }) } catch { /* ignore */ }
     }
     tokens.clear()
+    qc.clear()
     broadcast({ user: null, profile: null, role: null, loading: false })
   }
 
   async function resetPassword(email: string): Promise<Error | null> {
     try {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-      await fetch(`${base}/auth/forgot-password?email=${encodeURIComponent(email)}`, { method: 'POST' })
+      await api.postPublic('/auth/forgot-password', undefined, { email })
       return null
     } catch (err) {
-      return err instanceof Error ? err : new Error('Failed to send reset email')
+      return new Error(getErrorMessage(err, 'Failed to send reset email'))
     }
   }
 
   async function refreshProfile(): Promise<void> {
     try {
-      const profile = await api.get<AuthProfile>('/profiles/me')
+      const profile = await api.get<AuthProfile>('/profile/me')
       broadcast({ profile })
     } catch { /* ignore */ }
   }

@@ -1,47 +1,43 @@
+import '@/styles/auth.css'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { GraduationCap, Check } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { MessageSquare, Video, MapPin, GraduationCap, Users2, BookOpen } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { useSetMentorshipPreferences, useFullProfile, getDashboardForRole } from '@/hooks/useOnboarding'
-
-// ─── Static options ───────────────────────────────────────────────────────────
+import { useEnsureMentorProfile } from '@/hooks/useMentorship'
+import { getErrorMessage } from '@/lib/api'
 
 const AREAS_OF_INTEREST = [
-  'CV writing',
-  'Interview prep',
-  'Software development',
-  'Career change',
-  'Networking',
-  'Leadership',
-  'Research',
-  'Industry insight',
-  'Entrepreneurship',
-  'Work-life balance',
-  'Graduate schemes',
-  'Job searching',
+  'CV writing', 'Interview prep', 'Software development', 'Career change',
+  'Networking', 'Leadership', 'Research', 'Industry insight',
+  'Entrepreneurship', 'Work-life balance', 'Graduate schemes', 'Job searching',
 ]
 
 const MENTORSHIP_ROLES = [
-  { label: 'I want to mentor', is_mentor: true, is_mentee: false },
-  { label: 'I want a mentor', is_mentor: false, is_mentee: true },
-  { label: 'Both', is_mentor: true, is_mentee: true },
+  { label: "I want to\nmentor", is_mentor: true, is_mentee: false, Icon: GraduationCap },
+  { label: "I want a\nmentor", is_mentor: false, is_mentee: true, Icon: Users2 },
+  { label: "I'm open\nto both", is_mentor: true, is_mentee: true, Icon: BookOpen },
 ] as const
 
-// Backend accepts a single PreferredFormat value: "chat" | "video" | "in_person"
 const FORMAT_OPTIONS = [
-  { value: 'chat', label: 'Chat / messaging' },
-  { value: 'video', label: 'Video call' },
-  { value: 'in_person', label: 'In-person' },
+  { value: 'chat', label: 'Chat', Icon: MessageSquare },
+  { value: 'video', label: 'Video', Icon: Video },
+  { value: 'in_person', label: 'In-person', Icon: MapPin },
 ]
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function ArrowUpRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17L17 7M17 7H8M17 7V16" />
+    </svg>
+  )
+}
 
 export default function MentorshipPrefsPage() {
   const navigate = useNavigate()
   const { data: profile } = useFullProfile()
   const mutation = useSetMentorshipPreferences()
+  const ensureMentorProfile = useEnsureMentorProfile()
 
   const [mentorshipRoleIdx, setMentorshipRoleIdx] = useState<number | null>(null)
   const [areas, setAreas] = useState<string[]>([])
@@ -49,210 +45,215 @@ export default function MentorshipPrefsPage() {
   const [preferredFormat, setPreferredFormat] = useState<string | null>(null)
 
   function toggleArea(area: string) {
-    setAreas((prev) =>
-      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
-    )
+    setAreas((prev) => prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area])
   }
 
   const isValid = mentorshipRoleIdx !== null && areas.length > 0 && preferredFormat !== null
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!isValid) { toast.error('Please complete all fields'); return }
 
     const selectedRole = MENTORSHIP_ROLES[mentorshipRoleIdx!]
-    mutation.mutate(
-      {
+    try {
+      await mutation.mutateAsync({
         is_mentor: selectedRole.is_mentor,
         is_mentee: selectedRole.is_mentee,
         areas_of_interest: areas,
         availability_hours_per_week: hoursPerWeek,
         preferred_format: preferredFormat!,
-      },
-      {
-        onSuccess: () => {
-          toast.success('Preferences saved — welcome to ConnectUni!')
-          const dashboard = profile ? getDashboardForRole(profile.role) : '/dashboard'
-          navigate(dashboard, { replace: true })
-        },
-        onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to save preferences'),
+      })
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to save preferences'))
+      return
+    }
+
+    if (selectedRole.is_mentor) {
+      try {
+        await ensureMentorProfile.mutateAsync({
+          expertise_areas: areas,
+          mentorship_goals: [],
+        })
+      } catch (error) {
+        toast.error(
+          getErrorMessage(
+            error,
+            'Your preferences were saved, but we could not finish creating your mentor profile.',
+          ),
+        )
+        return
       }
-    )
+    }
+
+    toast.success('Preferences saved — welcome to ConnectUni!')
+    const dashboard = profile ? getDashboardForRole(profile.role) : '/dashboard'
+    navigate(dashboard, { replace: true })
   }
 
+  // Slider bubble position (1–20 range → 0–100%)
+  const bubbleLeft = `${((hoursPerWeek - 1) / 19) * 100}%`
+
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left brand panel */}
-      <div className="hidden lg:flex lg:w-[360px] flex-col relative overflow-hidden shrink-0">
-        <div className="absolute inset-0 gradient-primary" />
-        <div className="absolute inset-0 mesh-gradient" />
-        <div className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
-        <div className="relative flex flex-col h-full px-10 py-10 justify-between z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm border border-white/25">
-              <GraduationCap className="h-4 w-4 text-white" />
+    <div className="au-screen">
+      {/* ── Form column (scrollable for dense content) ── */}
+      <div className="au-col-form">
+        <div className="au-form-header">
+          <Link to="/" className="au-brand">
+            <span className="au-logo-mark" />
+            ConnectUni
+          </Link>
+          <div className="au-progress-pill">
+            <div className="au-pp-seg">
+              <span className="s on" /><span className="s on" />
             </div>
-            <span className="text-sm font-bold text-white/90 tracking-tight">ConnectUni</span>
+            Step 2 of 2
           </div>
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1">
-              <span className="text-xs text-white/80 font-medium">Step 3 of 3 — Mentorship</span>
-            </div>
-            <h2 className="text-2xl font-bold text-white leading-tight tracking-tight">
-              How do you want<br />to connect?
-            </h2>
-            <p className="text-sm text-white/55 leading-relaxed">
-              These preferences help us match you with the right people on the platform.
-            </p>
-          </div>
-          <p className="text-xs text-white/25">© {new Date().getFullYear()} ConnectUni</p>
         </div>
-      </div>
 
-      {/* Right form panel */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-        <div className="w-full max-w-[480px] space-y-7">
-          {/* Mobile brand */}
-          <div className="lg:hidden flex flex-col items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl gradient-primary shadow-glow">
-              <GraduationCap className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-base font-bold gradient-text">ConnectUni</span>
-          </div>
+        <div className="au-form-body" style={{ maxWidth: 560 }}>
+          <span className="au-eyebrow">Mentorship preferences</span>
+          <h1 className="au-display">What does<br />good look like?</h1>
+          <p className="au-sub">These settings power your match recommendations — you can retune anytime.</p>
 
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Mentorship preferences</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Almost done — tell us how you'd like to engage with the community.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-7">
-            {/* ── Mentorship goal ── */}
-            <div className="space-y-2.5">
-              <p className="text-sm font-medium text-foreground/80">What's your mentorship goal?</p>
-              <div className="grid grid-cols-3 gap-2">
+          <form onSubmit={handleSubmit}>
+            {/* ── Goal ── */}
+            <div className="au-field">
+              <label>Your goal</label>
+              <div className="au-goals">
                 {MENTORSHIP_ROLES.map((r, i) => (
                   <button
-                    key={r.label}
+                    key={i}
                     type="button"
+                    className={`au-goal-pill${mentorshipRoleIdx === i ? ' selected' : ''}`}
                     onClick={() => setMentorshipRoleIdx(i)}
-                    className={cn(
-                      'rounded-xl border p-3 text-center text-xs font-medium transition-all duration-200',
-                      mentorshipRoleIdx === i
-                        ? 'border-primary/40 bg-accent shadow-glow-sm text-foreground'
-                        : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/30'
-                    )}
                   >
-                    {mentorshipRoleIdx === i && (
-                      <div className="flex justify-center mb-1">
-                        <Check className="h-3 w-3 text-primary" />
-                      </div>
-                    )}
-                    {r.label}
+                    <div className="au-gp-ico">
+                      <r.Icon size={18} />
+                    </div>
+                    <div className="au-gp-title" style={{ whiteSpace: 'pre-line' }}>
+                      {r.label}
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* ── Areas of interest ── */}
-            <div className="space-y-2.5">
-              <p className="text-sm font-medium text-foreground/80">
-                Areas of interest{' '}
-                <span className="text-muted-foreground font-normal">(select all that apply)</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
+            {/* ── Interests ── */}
+            <div className="au-field">
+              <label>
+                Interests{' '}
+                <span style={{ textTransform: 'none', fontWeight: 500, color: '#9A9A9A', letterSpacing: 0 }}>
+                  · pick as many as you like
+                </span>
+              </label>
+              <div className="au-chips">
                 {AREAS_OF_INTEREST.map((area) => (
                   <button
                     key={area}
                     type="button"
+                    className={`au-chip${areas.includes(area) ? ' selected' : ''}`}
                     onClick={() => toggleArea(area)}
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-xs font-medium transition-all duration-200',
-                      areas.includes(area)
-                        ? 'border-primary/40 bg-primary/10 text-primary'
-                        : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border'
-                    )}
                   >
                     {area}
                   </button>
                 ))}
               </div>
-              {areas.length === 0 && (
-                <p className="text-xs text-muted-foreground/60">Select at least one area</p>
-              )}
             </div>
 
-            {/* ── Availability ── */}
-            <div className="space-y-2.5">
-              <p className="text-sm font-medium text-foreground/80">
-                Availability:{' '}
-                <span className="text-primary">
-                  {hoursPerWeek} hr{hoursPerWeek !== 1 ? 's' : ''} / week
-                </span>
-              </p>
-              <input
-                type="range"
-                min={1}
-                max={20}
-                value={hoursPerWeek}
-                onChange={(e) => setHoursPerWeek(parseInt(e.target.value))}
-                className="w-full accent-primary h-1.5 rounded-full cursor-pointer"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground/60">
-                <span>1 hr</span>
-                <span>10 hrs</span>
-                <span>20 hrs</span>
+            {/* ── Availability slider ── */}
+            <div className="au-field">
+              <label>Availability per week</label>
+              <div className="au-slider-wrap">
+                <div className="au-slider-bubble" style={{ left: bubbleLeft }}>
+                  {hoursPerWeek} hrs / wk
+                </div>
+                <input
+                  type="range"
+                  className="au-slider-input"
+                  min={1}
+                  max={20}
+                  value={hoursPerWeek}
+                  onChange={(e) => setHoursPerWeek(parseInt(e.target.value))}
+                />
+              </div>
+              <div className="au-slider-labels">
+                <span>1 HR</span>
+                <span>5 HR</span>
+                <span>10 HR</span>
+                <span>15 HR</span>
+                <span>20 HR</span>
               </div>
             </div>
 
-            {/* ── Preferred format ── */}
-            <div className="space-y-2.5">
-              <p className="text-sm font-medium text-foreground/80">Preferred format</p>
-              <div className="grid grid-cols-3 gap-2">
+            {/* ── Format ── */}
+            <div className="au-field">
+              <label>Preferred format</label>
+              <div className="au-formats-grid">
                 {FORMAT_OPTIONS.map((f) => (
                   <button
                     key={f.value}
                     type="button"
+                    className={`au-format-card${preferredFormat === f.value ? ' selected' : ''}`}
                     onClick={() => setPreferredFormat(f.value)}
-                    className={cn(
-                      'rounded-xl border p-3 text-center text-xs font-medium transition-all duration-200',
-                      preferredFormat === f.value
-                        ? 'border-primary/40 bg-accent shadow-glow-sm text-foreground'
-                        : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/30'
-                    )}
                   >
-                    {preferredFormat === f.value && (
-                      <div className="flex justify-center mb-1">
-                        <Check className="h-3 w-3 text-primary" />
-                      </div>
-                    )}
-                    {f.label}
+                    <div className="au-fc-illust">
+                      <f.Icon size={24} />
+                    </div>
+                    <div className="au-fc-title">{f.label}</div>
                   </button>
                 ))}
               </div>
             </div>
 
-            <Button
-              type="submit"
-              disabled={mutation.isPending || !isValid}
-              className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity disabled:opacity-40"
-            >
-              {mutation.isPending ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Saving…
-                </span>
-              ) : (
-                'Complete setup'
-              )}
-            </Button>
+            <div className="au-cta-row">
+              <button
+                type="button"
+                className="au-btn au-btn-ghost"
+                onClick={() => navigate('/onboarding/profile')}
+              >
+                ← Back
+              </button>
+              <button
+                type="submit"
+                className="au-btn"
+                style={{ flex: 1 }}
+                disabled={mutation.isPending || ensureMentorProfile.isPending || !isValid}
+              >
+                {mutation.isPending || ensureMentorProfile.isPending ? 'Saving…' : 'Finish — take me in'}
+                <span className="au-arrow-circle"><ArrowUpRight /></span>
+              </button>
+            </div>
+
+            <p className="au-hint" style={{ marginTop: 14 }}>
+              You'll see your first 5 mentor matches on the other side.
+            </p>
           </form>
+        </div>
+
+        <div className="au-form-footer">
+          <span>Preferences can be changed anytime</span>
+          <span>© {new Date().getFullYear()} ConnectUni</span>
+        </div>
+      </div>
+
+      {/* ── Photo column ── */}
+      <div className="au-col-photo alt-3">
+        <div className="au-quote-float">
+          <div className="au-stars">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" />
+              </svg>
+            ))}
+          </div>
+          <blockquote>"Setting my interests took two minutes. My first match was in the exact niche I wanted — sustainability in tech."</blockquote>
+          <div className="au-qfoot">
+            <div className="au-av av-3" />
+            <div>
+              <div className="au-qfoot-name">Sofia Marchetti</div>
+              <div className="au-qfoot-role">MSc Environmental Engineering · Imperial College</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

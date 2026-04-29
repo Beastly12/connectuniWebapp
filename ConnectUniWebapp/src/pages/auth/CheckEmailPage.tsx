@@ -1,76 +1,117 @@
+import '@/styles/auth.css'
 import { useLocation, Link } from 'react-router-dom'
-import { GraduationCap, Mail, CheckCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Mail, ShieldCheck } from 'lucide-react'
+import { api, getErrorMessage } from '@/lib/api'
+import { toast } from 'sonner'
+import { useState } from 'react'
+
+function ArrowUpRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17L17 7M17 7H8M17 7V16" />
+    </svg>
+  )
+}
 
 export default function CheckEmailPage() {
   const location = useLocation()
   const email = (location.state as { email?: string } | null)?.email ?? ''
   const isAcUk = email.toLowerCase().endsWith('.ac.uk')
+  const [resending, setResending] = useState(false)
+
+  async function handleResend() {
+    if (!email) return
+    setResending(true)
+    try {
+      await api.postPublic('/auth/resend-verification', { email })
+      toast.success('Verification email resent!')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Could not resend the verification email'))
+    } finally {
+      setResending(false)
+    }
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed top-0 right-0 h-64 w-64 rounded-full opacity-10"
-        style={{ background: 'radial-gradient(circle, hsl(var(--gradient-from, var(--primary))), transparent 70%)' }}
-      />
-
-      <div className="w-full max-w-[420px] text-center space-y-6">
-        {/* Brand */}
-        <div className="flex justify-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl gradient-primary shadow-glow-sm">
-            <GraduationCap className="h-4 w-4 text-white" />
-          </div>
+    <div className="au-screen">
+      {/* ── Form column ── */}
+      <div className="au-col-form">
+        <div className="au-form-header">
+          <Link to="/" className="au-brand">
+            <span className="au-logo-mark" />
+            ConnectUni
+          </Link>
         </div>
 
-        {/* Icon */}
-        <div className="flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-glow">
-            <Mail className="h-8 w-8 text-white" />
+        <div className="au-form-body">
+          <div className="au-big-icon">
+            <Mail size={44} />
           </div>
-        </div>
 
-        {/* Copy */}
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Check your inbox</h1>
-          {email ? (
-            isAcUk ? (
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                We've sent a verification link to{' '}
-                <span className="font-medium text-foreground">{email}</span>.{' '}
-                Verifying this will confirm your student status.
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                We've sent a verification link to{' '}
-                <span className="font-medium text-foreground">{email}</span>.{' '}
-                Click the link to activate your account.
-              </p>
-            )
-          ) : (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              We've sent a verification link to your email. Click it to activate your account.
+          <span className="au-eyebrow">One more step</span>
+          <h1 className="au-display">
+            {email ? `Check your email${email ? ',' : '.'}`
+              : 'Check your email.'}
+          </h1>
+          {email && (
+            <p className="au-sub" style={{ wordBreak: 'break-word' }}>
+              We sent a verification link to <strong style={{ color: '#1A1A1A' }}>{email}</strong>. Click the link to activate your account.
             </p>
           )}
-        </div>
+          {!email && (
+            <p className="au-sub">We sent a verification link to your email. Click the link to activate your account.</p>
+          )}
 
-        {/* Tips */}
-        <div className="rounded-xl border border-border/50 bg-muted/30 p-4 text-left space-y-2.5">
-          {[
-            "Check your spam folder if you don't see it",
-            'The link expires after 24 hours',
-            'You must verify before you can sign in',
-          ].map((tip) => (
-            <div key={tip} className="flex items-start gap-2.5">
-              <CheckCircle className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-              <p className="text-xs text-muted-foreground">{tip}</p>
+          <div className="au-expiry-pill">
+            <span className="au-expiry-dot" />
+            Link expires in 24 hours
+          </div>
+
+          {isAcUk && (
+            <div className="au-ac-banner">
+              <div className="au-ac-badge">
+                <ShieldCheck size={16} />
+              </div>
+              <div>
+                <strong>.ac.uk address detected</strong> — verifying this will confirm your student status automatically.
+              </div>
             </div>
-          ))}
+          )}
+
+          <div className="au-cta-row" style={{ marginTop: 32 }}>
+            {email && (
+              <button
+                type="button"
+                className="au-btn au-btn-ghost"
+                onClick={handleResend}
+                disabled={resending}
+              >
+                {resending ? 'Sending…' : 'Resend email'}
+              </button>
+            )}
+            <Link
+              to="/login"
+              className="au-btn"
+              style={{ textDecoration: 'none', flex: 1 }}
+            >
+              Go to sign in
+              <span className="au-arrow-circle"><ArrowUpRight /></span>
+            </Link>
+          </div>
+
+          <p className="au-hint" style={{ marginTop: 14 }}>
+            Check spam if you don't see it. Make sure you signed up with this exact address.
+          </p>
         </div>
 
-        <Button asChild variant="outline" className="w-full h-10 border-border/50">
-          <Link to="/login">Go to sign in</Link>
-        </Button>
+        <div className="au-form-footer">
+          <span>Wrong email? <Link to="/signup">Start over</Link></span>
+          <span>© {new Date().getFullYear()} ConnectUni</span>
+        </div>
       </div>
+
+      {/* ── Photo column (dark blue) ── */}
+      <div className="au-col-photo alt-2" />
     </div>
   )
 }

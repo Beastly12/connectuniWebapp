@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { ApiError, api } from '@/lib/api'
 
 // ─── Types (matching backend response shapes) ─────────────────────────────────
 
@@ -93,7 +93,37 @@ export function useBecomeMentor() {
       mentorship_goals?: string[]
       max_mentees?: number
     }) => api.post<MentorProfile>('/mentorship/become-mentor', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['mentor-profile-me'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mentor-profile-me'] })
+      qc.invalidateQueries({ queryKey: ['mentors'] })
+    },
+  })
+}
+
+export function useEnsureMentorProfile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: {
+      bio?: string
+      linkedin_url?: string
+      expertise_areas?: string[]
+      mentorship_goals?: string[]
+      max_mentees?: number
+    }) => {
+      try {
+        return await api.get<MentorProfile>('/mentorship/mentor-profile/me')
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          return api.post<MentorProfile>('/mentorship/become-mentor', data)
+        }
+
+        throw error
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mentor-profile-me'] })
+      qc.invalidateQueries({ queryKey: ['mentors'] })
+    },
   })
 }
 

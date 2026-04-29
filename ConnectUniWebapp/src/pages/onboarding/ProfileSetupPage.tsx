@@ -1,102 +1,104 @@
+import '@/styles/auth.css'
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { GraduationCap, ArrowRight, Upload, X, CheckCircle } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Upload, X, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-import { VerificationBadge } from '@/components/ui/VerificationBadge'
 import {
   useFullProfile,
   useCreateStudentProfile,
   useCreateAlumniProfile,
   useCreateProfessionalProfile,
 } from '@/hooks/useOnboarding'
+import { getErrorMessage } from '@/lib/api'
 
 const INDUSTRY_SECTORS = [
-  'Technology',
-  'Finance & Banking',
-  'Healthcare',
-  'Education',
-  'Engineering',
-  'Marketing & Communications',
-  'Legal',
-  'Consulting',
-  'Media & Entertainment',
-  'Retail & E-commerce',
-  'Government & Public Sector',
-  'Nonprofit',
-  'Research & Academia',
-  'Other',
+  'Technology', 'Finance & Banking', 'Healthcare', 'Education', 'Engineering',
+  'Marketing & Communications', 'Legal', 'Consulting', 'Media & Entertainment',
+  'Retail & E-commerce', 'Government & Public Sector', 'Nonprofit',
+  'Research & Academia', 'Other',
 ]
 
-// ─── Student Form ─────────────────────────────────────────────────────────────
+function ArrowUpRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17L17 7M17 7H8M17 7V16" />
+    </svg>
+  )
+}
+
+// ─── Student Form ──────────────────────────────────────────────────────────────
 
 function StudentForm({ onSuccess }: { onSuccess: () => void }) {
   const mutation = useCreateStudentProfile()
   const currentYear = new Date().getFullYear()
   const [universityName, setUniversityName] = useState('')
   const [courseTitle, setCourseTitle] = useState('')
-  const [yearOfStudy, setYearOfStudy] = useState('')
+  const [yearOfStudy, setYearOfStudy] = useState<number | null>(null)
   const [expectedGraduation, setExpectedGraduation] = useState('')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!yearOfStudy) { toast.error('Please select your year of study'); return }
     mutation.mutate(
       {
         university_name: universityName.trim(),
         course_title: courseTitle.trim(),
-        year_of_study: parseInt(yearOfStudy),
+        year_of_study: yearOfStudy,
         expected_graduation: parseInt(expectedGraduation),
       },
       {
         onSuccess: () => { toast.success('Profile saved!'); onSuccess() },
-        onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to save profile'),
+        onError: (err) => toast.error(getErrorMessage(err, 'Failed to save profile')),
       }
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">University name</Label>
-        <Input
-          placeholder="University of Example"
-          value={universityName}
-          onChange={(e) => setUniversityName(e.target.value)}
-          required
-          className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">Course title</Label>
-        <Input
-          placeholder="BSc Computer Science"
-          value={courseTitle}
-          onChange={(e) => setCourseTitle(e.target.value)}
-          required
-          className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-foreground/80">Year of study</Label>
-          <Select value={yearOfStudy} onValueChange={setYearOfStudy}>
-            <SelectTrigger className="h-10 bg-muted/50 border-border/60">
-              <SelectValue placeholder="Select year" />
-            </SelectTrigger>
-            <SelectContent>
-              {[1, 2, 3, 4, 5].map((y) => (
-                <SelectItem key={y} value={String(y)}>Year {y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <form onSubmit={handleSubmit}>
+      <div className="au-field">
+        <label>University name</label>
+        <div className="au-input-wrap">
+          <input
+            placeholder="University of Example"
+            value={universityName}
+            onChange={(e) => setUniversityName(e.target.value)}
+            required
+          />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-foreground/80">Expected graduation</Label>
-          <Input
+      </div>
+
+      <div className="au-field">
+        <label>Course title</label>
+        <div className="au-input-wrap">
+          <input
+            placeholder="BSc Computer Science"
+            value={courseTitle}
+            onChange={(e) => setCourseTitle(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="au-field">
+        <label>Year of study</label>
+        <div className="au-year-pills">
+          {[1, 2, 3, 4, 5].map((y) => (
+            <button
+              key={y}
+              type="button"
+              className={`au-year-pill${yearOfStudy === y ? ' active' : ''}`}
+              onClick={() => setYearOfStudy(y)}
+            >
+              Year {y}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="au-field">
+        <label>Expected graduation year</label>
+        <div className="au-input-wrap">
+          <input
             type="number"
             placeholder={String(currentYear + 2)}
             min={currentYear}
@@ -104,24 +106,20 @@ function StudentForm({ onSuccess }: { onSuccess: () => void }) {
             value={expectedGraduation}
             onChange={(e) => setExpectedGraduation(e.target.value)}
             required
-            className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
           />
         </div>
       </div>
-      <Button
-        type="submit"
-        disabled={mutation.isPending || !universityName || !courseTitle || !yearOfStudy || !expectedGraduation}
-        className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity disabled:opacity-40"
-      >
-        {mutation.isPending ? (
-          <span className="flex items-center gap-2">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Saving…
-          </span>
-        ) : (
-          <>Continue <ArrowRight className="ml-2 h-4 w-4" /></>
-        )}
-      </Button>
+
+      <div className="au-cta-row">
+        <button
+          type="submit"
+          className="au-btn"
+          disabled={mutation.isPending || !universityName || !courseTitle || !yearOfStudy || !expectedGraduation}
+        >
+          {mutation.isPending ? 'Saving…' : 'Continue'}
+          <span className="au-arrow-circle"><ArrowUpRight /></span>
+        </button>
+      </div>
     </form>
   )
 }
@@ -165,137 +163,148 @@ function AlumniForm({ onSuccess }: { onSuccess: () => void }) {
       {
         onSuccess: () => {
           if (certificate) {
-            toast.success("Profile saved! Your certificate has been submitted for review. You'll receive an email once it's been verified.")
+            toast.success("Profile saved! Your certificate has been submitted for review.")
           } else {
             toast.success('Profile saved!')
           }
           onSuccess()
         },
-        onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to save profile'),
+        onError: (err) => toast.error(getErrorMessage(err, 'Failed to save profile')),
       }
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">University attended</Label>
-        <Input
-          placeholder="University of Example"
-          value={universityName}
-          onChange={(e) => setUniversityName(e.target.value)}
-          required
-          className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">Course completed</Label>
-        <Input
-          placeholder="BSc Computer Science"
-          value={courseCompleted}
-          onChange={(e) => setCourseCompleted(e.target.value)}
-          required
-          className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">Graduation year</Label>
-        <Input
-          type="number"
-          placeholder="2023"
-          max={new Date().getFullYear() - 1}
-          min={1950}
-          value={graduationYear}
-          onChange={(e) => setGraduationYear(e.target.value)}
-          required
-          className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-        />
+    <form onSubmit={handleSubmit}>
+      <div className="au-field">
+        <label>University attended</label>
+        <div className="au-input-wrap">
+          <input
+            placeholder="University of Example"
+            value={universityName}
+            onChange={(e) => setUniversityName(e.target.value)}
+            required
+          />
+        </div>
       </div>
 
-      {/* Certificate upload */}
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">
+      <div className="au-field-row">
+        <div className="au-field">
+          <label>Course completed</label>
+          <div className="au-input-wrap">
+            <input
+              placeholder="BSc Computer Science"
+              value={courseCompleted}
+              onChange={(e) => setCourseCompleted(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        <div className="au-field">
+          <label>Graduation year</label>
+          <div className="au-input-wrap">
+            <input
+              type="number"
+              placeholder="2023"
+              max={new Date().getFullYear() - 1}
+              min={1950}
+              value={graduationYear}
+              onChange={(e) => setGraduationYear(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="au-field">
+        <label>
           Graduation certificate{' '}
-          <span className="text-muted-foreground font-normal">(optional)</span>
-        </Label>
+          <span style={{ textTransform: 'none', fontWeight: 500, color: '#9A9A9A' }}>(optional)</span>
+        </label>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,application/pdf"
-          className="hidden"
+          style={{ display: 'none' }}
           onChange={handleFileChange}
         />
         {certificate ? (
-          <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-accent/50 px-3 py-2.5">
-            <CheckCircle className="h-4 w-4 shrink-0 text-primary" />
-            <span className="flex-1 text-xs text-foreground truncate">{certificate.name}</span>
+          <div className="au-upload-filled">
+            <CheckCircle2 size={16} color="#8fb65a" />
+            <span className="au-uf-name">{certificate.name}</span>
             <button
               type="button"
               onClick={() => {
                 setCertificate(null)
                 if (fileInputRef.current) fileInputRef.current.value = ''
               }}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Remove file"
             >
-              <X className="h-3.5 w-3.5" />
+              <X size={14} />
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/20 px-3 py-3 text-muted-foreground hover:border-primary/40 hover:bg-accent/30 transition-all"
-          >
-            <Upload className="h-4 w-4 shrink-0" />
-            <span className="text-xs">Upload certificate — JPG, PNG, PDF (max 10 MB)</span>
+          <button type="button" className="au-upload-zone" onClick={() => fileInputRef.current?.click()}>
+            <div className="au-upload-cloud">
+              <Upload size={22} />
+            </div>
+            <div className="au-uz-title">Upload your certificate</div>
+            <div className="au-uz-desc">Speed up alumni verification</div>
+            <div className="au-uz-formats">
+              {['JPG', 'PNG', 'WEBP', 'PDF'].map(f => (
+                <span key={f} className="au-uz-pill">{f}</span>
+              ))}
+              <span className="au-uz-pill">max 10 MB</span>
+            </div>
           </button>
         )}
         {certificate && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 leading-snug">
-            Your certificate will be submitted for review. You'll receive an email once verified.
+          <p className="au-hint" style={{ color: '#8fb65a' }}>
+            Certificate submitted for review — you'll receive an email once verified.
           </p>
         )}
       </div>
 
-      <Button
-        type="submit"
-        disabled={mutation.isPending || !universityName || !courseCompleted || !graduationYear}
-        className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity disabled:opacity-40"
-      >
-        {mutation.isPending ? (
-          <span className="flex items-center gap-2">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Saving…
-          </span>
-        ) : (
-          <>Continue <ArrowRight className="ml-2 h-4 w-4" /></>
-        )}
-      </Button>
+      <div className="au-cta-row">
+        <button
+          type="submit"
+          className="au-btn"
+          disabled={mutation.isPending || !universityName || !courseCompleted || !graduationYear}
+        >
+          {mutation.isPending ? 'Saving…' : 'Continue'}
+          <span className="au-arrow-circle"><ArrowUpRight /></span>
+        </button>
+      </div>
     </form>
   )
 }
 
 // ─── Professional Form ────────────────────────────────────────────────────────
 
+const EXP_RANGES = [
+  { label: '< 1', value: 0 },
+  { label: '1–3', value: 2 },
+  { label: '4–7', value: 5 },
+  { label: '8–12', value: 10 },
+  { label: '13+', value: 15 },
+]
+
 function ProfessionalForm({ onSuccess }: { onSuccess: () => void }) {
   const mutation = useCreateProfessionalProfile()
   const [jobTitle, setJobTitle] = useState('')
   const [company, setCompany] = useState('')
   const [industrySector, setIndustrySector] = useState('')
-  const [yearsOfExperience, setYearsOfExperience] = useState('')
+  const [yearsValue, setYearsValue] = useState<number | null>(null)
   const [linkedinUrl, setLinkedinUrl] = useState('')
 
   function isValidLinkedin(url: string): boolean {
     if (!url) return true
-    try {
-      return new URL(url).hostname.includes('linkedin.com')
-    } catch {
-      return false
-    }
+    try { return new URL(url).hostname.includes('linkedin.com') } catch { return false }
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (yearsValue === null) { toast.error('Please select your years of experience'); return }
     if (linkedinUrl && !isValidLinkedin(linkedinUrl)) {
       toast.error('Please enter a valid LinkedIn URL')
       return
@@ -305,208 +314,209 @@ function ProfessionalForm({ onSuccess }: { onSuccess: () => void }) {
         job_title: jobTitle.trim(),
         company: company.trim(),
         industry_sector: industrySector,
-        years_of_experience: parseInt(yearsOfExperience),
+        years_of_experience: yearsValue,
         linkedin_url: linkedinUrl.trim() || undefined,
       },
       {
         onSuccess: () => { toast.success('Profile saved!'); onSuccess() },
-        onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to save profile'),
+        onError: (err) => toast.error(getErrorMessage(err, 'Failed to save profile')),
       }
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">Job title</Label>
-        <Input
-          placeholder="Software Engineer"
-          value={jobTitle}
-          onChange={(e) => setJobTitle(e.target.value)}
-          required
-          className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">Company / Organisation</Label>
-        <Input
-          placeholder="Acme Corp"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          required
-          className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-foreground/80">Industry sector</Label>
-        <Select value={industrySector} onValueChange={setIndustrySector}>
-          <SelectTrigger className="h-10 bg-muted/50 border-border/60">
-            <SelectValue placeholder="Select sector" />
-          </SelectTrigger>
-          <SelectContent>
-            {INDUSTRY_SECTORS.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-foreground/80">Years of experience</Label>
-          <Input
-            type="number"
-            placeholder="5"
-            min={0}
-            max={60}
-            value={yearsOfExperience}
-            onChange={(e) => setYearsOfExperience(e.target.value)}
-            required
-            className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
-          />
+    <form onSubmit={handleSubmit}>
+      <div className="au-field-row">
+        <div className="au-field">
+          <label>Job title</label>
+          <div className="au-input-wrap">
+            <input
+              placeholder="Software Engineer"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              required
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-foreground/80">
-            LinkedIn{' '}
-            <span className="text-muted-foreground font-normal">(optional)</span>
-          </Label>
-          <Input
+        <div className="au-field">
+          <label>Company</label>
+          <div className="au-input-wrap">
+            <input
+              placeholder="Acme Corp"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="au-field">
+        <label>Industry sector</label>
+        <div className="au-input-wrap" style={{ paddingRight: 16 }}>
+          <select
+            value={industrySector}
+            onChange={(e) => setIndustrySector(e.target.value)}
+            required
+          >
+            <option value="" disabled>Select sector</option>
+            {INDUSTRY_SECTORS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="au-field">
+        <label>Years of experience</label>
+        <div className="au-year-pills">
+          {EXP_RANGES.map((r) => (
+            <button
+              key={r.label}
+              type="button"
+              className={`au-year-pill${yearsValue === r.value ? ' active' : ''}`}
+              onClick={() => setYearsValue(r.value)}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="au-field">
+        <label>
+          LinkedIn{' '}
+          <span style={{ textTransform: 'none', fontWeight: 500, color: '#9A9A9A' }}>(optional)</span>
+        </label>
+        <div className="au-input-wrap">
+          <input
             type="url"
             placeholder="linkedin.com/in/…"
             value={linkedinUrl}
             onChange={(e) => setLinkedinUrl(e.target.value)}
-            className="h-10 bg-muted/50 border-border/60 focus:border-primary/60"
           />
         </div>
       </div>
-      <Button
-        type="submit"
-        disabled={mutation.isPending || !jobTitle || !company || !industrySector || !yearsOfExperience}
-        className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity disabled:opacity-40"
-      >
-        {mutation.isPending ? (
-          <span className="flex items-center gap-2">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Saving…
-          </span>
-        ) : (
-          <>Continue <ArrowRight className="ml-2 h-4 w-4" /></>
-        )}
-      </Button>
+
+      <div className="au-cta-row">
+        <button
+          type="submit"
+          className="au-btn"
+          disabled={mutation.isPending || !jobTitle || !company || !industrySector || yearsValue === null}
+        >
+          {mutation.isPending ? 'Saving…' : 'Continue'}
+          <span className="au-arrow-circle"><ArrowUpRight /></span>
+        </button>
+      </div>
     </form>
   )
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const roleDescriptions: Record<string, string> = {
-  STUDENT: 'Tell us about your studies so we can match you with the right mentors.',
-  ALUMNI: 'Share your educational background and optionally upload your graduation certificate.',
-  PROFESSIONAL: 'Share your professional background to help students understand your expertise.',
-  MENTOR: 'Tell us a bit more about yourself.',
-}
-
-const roleSubtitles: Record<string, string> = {
-  STUDENT: 'your student profile',
-  ALUMNI: 'your alumni profile',
-  PROFESSIONAL: 'your professional profile',
-  MENTOR: 'your profile',
-}
+type RoleTab = 'STUDENT' | 'ALUMNI' | 'PROFESSIONAL'
 
 export default function ProfileSetupPage() {
   const navigate = useNavigate()
   const { data: profile, isLoading, isError } = useFullProfile()
+  const [activeTab, setActiveTab] = useState<RoleTab | null>(null)
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="space-y-3 w-64">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+        <div className="animate-spin" style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #EF4B24', borderTopColor: 'transparent' }} />
       </div>
     )
   }
 
   if (isError || !profile) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background px-6">
-        <p className="text-sm text-muted-foreground">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+        <p style={{ fontSize: 14, color: '#6B6B6B' }}>
           Something went wrong. Please{' '}
-          <a href="/login" className="text-primary underline underline-offset-2">sign in again</a>.
+          <a href="/login" style={{ color: '#EF4B24', textDecoration: 'none', fontWeight: 600 }}>sign in again</a>.
         </p>
       </div>
     )
   }
 
-  const role = profile.role?.toUpperCase() ?? 'STUDENT'
-  const subtitle = roleSubtitles[role] ?? 'your profile'
-  const description = roleDescriptions[role] ?? ''
+  const role = (profile.role?.toUpperCase() ?? 'STUDENT') as RoleTab
+  const resolvedTab: RoleTab = activeTab ?? (
+    role === 'ALUMNI' ? 'ALUMNI' : role === 'PROFESSIONAL' ? 'PROFESSIONAL' : 'STUDENT'
+  )
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left brand panel */}
-      <div className="hidden lg:flex lg:w-[360px] flex-col relative overflow-hidden shrink-0">
-        <div className="absolute inset-0 gradient-primary" />
-        <div className="absolute inset-0 mesh-gradient" />
-        <div className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-          }}
-        />
-        <div className="relative flex flex-col h-full px-10 py-10 justify-between z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm border border-white/25">
-              <GraduationCap className="h-4 w-4 text-white" />
+    <div className="au-screen">
+      {/* ── Form column ── */}
+      <div className="au-col-form">
+        <div className="au-form-header">
+          <Link to="/" className="au-brand">
+            <span className="au-logo-mark" />
+            ConnectUni
+          </Link>
+          <div className="au-progress-pill">
+            <div className="au-pp-seg">
+              <span className="s on" /><span className="s" />
             </div>
-            <span className="text-sm font-bold text-white/90 tracking-tight">ConnectUni</span>
+            Step 1 of 2
           </div>
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 px-3 py-1">
-              <span className="text-xs text-white/80 font-medium">Step 2 of 3 — Profile setup</span>
+        </div>
+
+        <div className="au-form-body" style={{ maxWidth: 560 }}>
+          <span className="au-eyebrow">Role profile</span>
+          <h1 className="au-display">Set up your<br />profile.</h1>
+          <p className="au-sub">Tell the community about your background so we can match you well.</p>
+
+          <div style={{ marginTop: 28 }}>
+            <div className="au-variant-tabs">
+              {(['STUDENT', 'ALUMNI', 'PROFESSIONAL'] as RoleTab[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`au-variant-tab${resolvedTab === t ? ' active' : ''}`}
+                  onClick={() => setActiveTab(t)}
+                >
+                  {t === 'STUDENT' ? 'Student' : t === 'ALUMNI' ? 'Alumni' : 'Professional'}
+                </button>
+              ))}
             </div>
-            <h2 className="text-2xl font-bold text-white leading-tight tracking-tight">
-              Set up {subtitle}
-            </h2>
-            <p className="text-sm text-white/55 leading-relaxed">{description}</p>
+
+            {resolvedTab === 'STUDENT' && (
+              <StudentForm onSuccess={() => navigate('/onboarding/mentorship')} />
+            )}
+            {resolvedTab === 'ALUMNI' && (
+              <AlumniForm onSuccess={() => navigate('/onboarding/mentorship')} />
+            )}
+            {resolvedTab === 'PROFESSIONAL' && (
+              <ProfessionalForm onSuccess={() => navigate('/onboarding/mentorship')} />
+            )}
           </div>
-          <p className="text-xs text-white/25">© {new Date().getFullYear()} ConnectUni</p>
+        </div>
+
+        <div className="au-form-footer">
+          <span>You can update this anytime from your profile</span>
+          <span>© {new Date().getFullYear()} ConnectUni</span>
         </div>
       </div>
 
-      {/* Right form panel */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 relative">
-        <div className="pointer-events-none absolute top-0 right-0 h-64 w-64 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, hsl(var(--gradient-from, var(--primary))), transparent 70%)' }}
-        />
-
-        <div className="w-full max-w-[400px] space-y-6">
-          {/* Mobile brand */}
-          <div className="lg:hidden flex flex-col items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl gradient-primary shadow-glow">
-              <GraduationCap className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-base font-bold gradient-text">ConnectUni</span>
+      {/* ── Photo column ── */}
+      <div className="au-col-photo alt-2">
+        <div className="au-quote-float">
+          <div className="au-stars">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z" />
+              </svg>
+            ))}
           </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h1 className="text-2xl font-bold tracking-tight">Set up {subtitle}</h1>
-              <VerificationBadge status={profile.verification_status} />
+          <blockquote>"Setting up my profile took five minutes — and I had my first mentor match the same afternoon."</blockquote>
+          <div className="au-qfoot">
+            <div className="au-av av-2" />
+            <div>
+              <div className="au-qfoot-name">Amara Osei</div>
+              <div className="au-qfoot-role">Final year · Law · University of Manchester</div>
             </div>
-            <p className="text-sm text-muted-foreground">{description}</p>
           </div>
-
-          {role === 'STUDENT' && (
-            <StudentForm onSuccess={() => navigate('/onboarding/mentorship')} />
-          )}
-          {role === 'ALUMNI' && (
-            <AlumniForm onSuccess={() => navigate('/onboarding/mentorship')} />
-          )}
-          {(role === 'PROFESSIONAL' || role === 'MENTOR') && (
-            <ProfessionalForm onSuccess={() => navigate('/onboarding/mentorship')} />
-          )}
         </div>
       </div>
     </div>

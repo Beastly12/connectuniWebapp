@@ -1,0 +1,384 @@
+ConnectUni Web App — Implementation Report
+==========================================
+
+
+OVERVIEW
+--------
+ConnectUni is a full-stack mentorship platform connecting university students with alumni and
+industry professionals. The frontend is a React + Vite + TypeScript SPA. This report documents
+everything currently implemented.
+
+
+TECH STACK
+----------
+Layer                   Technology
+-----                   ----------
+Framework               React 18 + Vite + TypeScript
+Routing                 React Router v6
+Server state            TanStack Query (React Query v5)
+Auth state              Custom singleton hook (useAuth) — no external auth library
+Styling (auth/onboard)  Custom au- CSS design system (auth.css)
+Styling (dashboard)     Tailwind CSS + shadcn/ui components
+Toasts                  Sonner
+Icons                   Lucide React
+Fonts                   Plus Jakarta Sans (headings/body) · JetBrains Mono (step pills)
+HTTP                    Custom api helper (src/lib/api.ts) wrapping fetch
+
+
+DESIGN SYSTEM — src/styles/auth.css
+------------------------------------
+A purpose-built CSS system prefixed with .au- so it never conflicts with Tailwind.
+It powers all auth and onboarding pages.
+
+Design tokens:
+  --orange: #EF4B24       — primary brand / CTAs / active segments
+  --charcoal: #1A1A1A     — body text, headings
+  --offwhite: #F7F5F0     — input backgrounds
+  --mint: #D4E8B8         — success states, .ac.uk banner, upload zone
+  --mint-deep: #8fb65a    — strong password indicator
+
+Layout:
+  .au-screen       — 50/50 CSS Grid split (1fr 1fr), collapses to single column below 1100px
+  .au-col-form     — left column, full-height, min-height: 100dvh for mobile browser chrome
+  .au-col-photo    — right column, position: sticky; top: 0; height: 100vh,
+                     diagonal stripe overlay (::after), dark bottom gradient (::before)
+
+Photo panel variants:
+  default   — warm orange-tan
+  .alt-1    — terracotta
+  .alt-2    — dark navy
+  .alt-3    — olive/tan
+
+Core UI components defined in auth.css:
+
+  Class                           Purpose
+  -----                           -------
+  .au-brand / .au-logo-mark       Orange circle logo + wordmark
+  .au-step-pill                   01/03 progress pill with orange segment bars (JetBrains Mono)
+  .au-progress-pill               Onboarding "Step 1 of 2" pill with dark background
+  .au-eyebrow                     Small orange uppercase label above headings
+  .au-display                     44px bold heading (Plus Jakarta Sans)
+  .au-sub                         Subtitle paragraph, muted grey
+  .au-field                       Form field wrapper with label
+  .au-input-wrap                  Input with optional left icon slot + eye button
+  .au-btn                         Solid orange CTA with au-arrow-circle icon slot
+  .au-btn-ghost                   Ghost/outline secondary button
+  .au-eye-btn                     Password visibility toggle
+  .au-forgot-row                  Right-aligned "Forgot password?" link
+  .au-strength                    5-segment password strength bar (.on = orange, .ok = mint-deep)
+  .au-sso-row / .au-sso-btn       Google / Apple / Microsoft SSO buttons
+  .au-divider                     "or continue with" horizontal rule
+  .au-role-option                 Selectable role card (selected = orange bg + white text)
+  .au-role-ico / .au-role-chk     Icon and checkmark slots within role card
+  .au-big-icon                    Large 80px circle icon (default: offwhite; .au-orange = orange)
+  .au-expiry-pill                 Orange dot + expiry text pill
+  .au-ac-banner                   Mint background .ac.uk institution verification banner
+  .au-success-panel               Mint success confirmation block with checkmark
+  .au-variant-tabs                Student / Alumni / Professional pill tab bar
+  .au-upload-zone / .au-upload-filled  Mint dashed drag-and-drop certificate upload area
+  .au-year-pills / .au-year-pill  Pill-style selectors (Year 1–5, experience ranges)
+  .au-goals / .au-goal-pill       3-col mentorship role selector grid
+  .au-chips / .au-chip            Flex-wrap toggleable interest chips
+  .au-slider-wrap / .au-slider-bubble  Range slider with floating value tooltip
+  .au-formats-grid / .au-format-card   3-col Chat / Video / In-person format selector
+  .au-quote-float                 Floating testimonial card on photo panel
+  .au-members-float / .au-avatar-stack Floating members count pill with stacked avatars
+  .au-form-footer                 Bottom footer row with legal/copyright text
+
+Responsive breakpoints:
+
+  Breakpoint    Changes
+  ----------    -------
+  <= 1100px     Photo column hidden; form column goes full-width; padding reduced
+  <= 768px      Form padding further reduced
+  <= 480px      Field rows stack to 1 column; SSO buttons stack vertically; CTA row stacks;
+                year pills wrap; variant tabs go full-width
+  <= 360px      3-col goal/format grids collapse to 1 column with horizontal icon+text row layout
+
+
+AUTHENTICATION — src/lib/api.ts + src/hooks/useAuth.ts
+-------------------------------------------------------
+
+API Helper (api)
+  A typed fetch wrapper that handles JWT auth headers, token refresh, and error parsing.
+
+  Methods:
+    api.get<T>(path, params?)         — authenticated GET
+    api.post<T>(path, body?)          — authenticated POST (JSON)
+    api.postPublic<T>(path, body?)    — unauthenticated POST (no auth header)
+    api.postForm<T>(path, formData)   — authenticated multipart POST
+    api.loginForm<T>(path, email, password) — application/x-www-form-urlencoded login
+    api.patch<T>, api.put<T>, api.delete<T> — standard REST methods
+    tokens.set(access, refresh)       — store tokens in localStorage
+    tokens.getAccess()                — read access token
+    tokens.getRefresh()               — read refresh token
+    tokens.clear()                    — remove both tokens
+
+Auth Hook (useAuth)
+  A singleton pub/sub pattern — a single _state object and _listeners set ensure all hook
+  instances across the app stay in sync without needing context or Zustand.
+
+  Boot sequence:
+    On module load, reads the JWT from localStorage, decodes it client-side (no library —
+    base64 + JSON.parse), extracts uid, email, and role claims, then fetches /profiles/me to
+    hydrate the profile. All components using useAuth see loading: true until boot completes,
+    preventing auth flashes.
+
+  Exposed methods:
+    Method                    Endpoint                    Description
+    ------                    --------                    -----------
+    signIn(email, password)   POST /auth/login            Form-encoded login, stores tokens, broadcasts state
+    signUp(payload)           POST /auth/register         Registers new user (unauthenticated)
+    signOut()                 POST /auth/logout           Revokes refresh token, clears state
+    resetPassword(email)      POST /auth/forgot-password  Sends reset link
+    refreshProfile()          GET /profiles/me            Re-fetches and broadcasts profile
+
+  BackendRole values: STUDENT | ALUMNI | MENTOR | PROFESSIONAL | ADMIN
+
+
+ONBOARDING DATA LAYER — src/hooks/useOnboarding.ts
+---------------------------------------------------
+TanStack Query hooks for the onboarding flow.
+
+Key types:
+  StudentProfile       — university_name, course_title, year_of_study, expected_graduation
+  AlumniProfile        — university_name, course_completed, graduation_year, certificate_url
+  ProfessionalProfile  — job_title, company, industry_sector, years_of_experience, linkedin_url
+  MentorshipPreference — is_mentor, is_mentee, areas_of_interest[], availability_hours_per_week,
+                         preferred_format
+  FullProfile          — union of all above + verification_status, is_verified
+
+Helper functions:
+  hasRoleProfile(fp)       — returns true if the user's role-specific sub-profile exists
+  getDashboardForRole(role) — maps role to /dashboard, /alumni-dashboard, or /admin
+
+Mutations (all invalidate ['full-profile'] on success):
+  useCreateStudentProfile()       → POST /profile/student
+  useCreateAlumniProfile()        → POST /profile/alumni (multipart, supports certificate upload)
+  useCreateProfessionalProfile()  → POST /profile/professional
+  useSetMentorshipPreferences()   → POST /profile/mentorship/preferences
+  useVerifyEmail()                → GET /auth/verify-email?token=
+
+
+ROUTE GUARDS
+------------
+
+ProtectedRoute (src/components/layouts/ProtectedRoute.tsx)
+  Wraps authenticated routes. Shows a skeleton loading state during auth resolution.
+  Redirects unauthenticated users to /login (preserving `from` location for post-login redirect).
+  Supports optional allowedRoles[] — users with a wrong role are sent to their own dashboard.
+
+GuestRoute (src/components/layouts/GuestRoute.tsx)
+  Wraps public-only routes. Returns null during auth load (prevents flash of login page for
+  logged-in users). Authenticated users are redirected to their role dashboard via dashboardMap.
+  Applied to: /, /login, /signup, /forgot-password.
+
+OnboardingGuard (src/components/layouts/OnboardingGuard.tsx)
+  Wraps dashboard routes (sits inside ProtectedRoute). Fetches FullProfile and checks completion:
+    1. If no role profile        → redirect /onboarding/profile
+    2. If no mentorship prefs    → redirect /onboarding/mentorship
+    3. Otherwise                 → render children
+  Waits for both isLoading AND isFetching before rendering, preventing stale-cache redirect
+  loops immediately after onboarding submission.
+
+
+AUTH & ONBOARDING PAGES
+------------------------
+
+Login — src/pages/LoginPage.tsx
+  - Split layout with default photo panel
+  - Email + password inputs with Lucide icons, eye toggle, forgot password link
+  - Post-login: fetches /profile/me, routes to onboarding if incomplete,
+    otherwise to role dashboard (or `from` redirect)
+  - SSO row: Google, Apple, Microsoft buttons (visual only, toast "SSO coming soon")
+  - Photo panel: 12k+ Members float, Priya Raghavan / Atlassian / UCL quote
+
+Signup — src/pages/SignupPage.tsx
+  Three-step flow with 01/03 → 02/03 → 03/03 step pills:
+  1. Credentials — university email + password with 5-segment live strength meter.
+     Scoring: length >=4 (+1), length >=8 (+1), uppercase (+1), number (+1), symbol (+1).
+     Hint text changes with score.
+  2. Role — selectable au-role-option cards for Student / Alumni / Professional
+     with Check icon on selected.
+  3. Profile — full name, university, major, graduation year (role-aware label and placeholder).
+     Calls signUp(), redirects to /auth/check-email passing email in location state.
+  Photo panel: alt-1 gradient, Tom Bradley / Edinburgh quote, Members float.
+
+Forgot Password — src/pages/ForgotPasswordPage.tsx
+  - Default state: orange Lock big-icon, email field, calls resetPassword(email)
+  - Sent state: mint Mail big-icon, "Check your inbox" heading with submitted email highlighted
+  - Photo panel: Jordan Pierce / LSE quote
+
+Check Email — src/pages/auth/CheckEmailPage.tsx
+  - Reads email from location.state passed by SignupPage
+  - Mail big-icon, expiry pill ("Link expires in 24 hours" with orange dot)
+  - .ac.uk detection: shows mint au-ac-banner with ShieldCheck icon confirming automatic
+    student verification
+  - Resend button calls api.postPublic('/auth/resend-verification', { email })
+  - Photo panel: alt-2 dark navy gradient (no quote — clean)
+
+Email Verification — src/pages/auth/EmailVerificationPage.tsx
+  Reads ?token= from URL search params and calls GET /auth/verify-email.
+
+  State       Icon                          Heading
+  -----       ----                          -------
+  Loading     Spinning Loader2 (orange)     "Verifying your email…"
+  Success     CheckCircle2 (mint big-icon)  "You're in." + au-success-panel
+  Error       XCircle (orange big-icon)     "Verification failed."
+
+  Photo panel: alt-1 gradient.
+
+Profile Setup — src/pages/onboarding/ProfileSetupPage.tsx
+  - Progress pill: "Step 1 of 2"
+  - au-variant-tabs: defaults to the user's role, switchable between Student / Alumni / Professional
+
+  Student tab:
+    University, course title, year of study (au-year-pills: Year 1–5),
+    expected graduation (native number input)
+
+  Alumni tab:
+    University, course completed, graduation year,
+    certificate upload (au-upload-zone → au-upload-filled once file selected).
+    Certificate sent as multipart via useCreateAlumniProfile()
+
+  Professional tab:
+    Job title + company (2-col row), industry sector (native <select> with 10 sectors),
+    experience range pills (< 1, 1–3, 4–7, 8–12, 13+ mapped to numeric values),
+    optional LinkedIn URL
+
+  On success: invalidates ['full-profile'] cache, navigates to /onboarding/mentorship
+  Photo panel: alt-2 with Amara Osei / Manchester quote
+
+Mentorship Preferences — src/pages/onboarding/MentorshipPrefsPage.tsx
+  - Progress pill: "Step 2 of 2"
+  - Goal (au-goals 3-col):
+      "I want to mentor" / "I want a mentor" / "I'm open to both"
+      maps to is_mentor/is_mentee booleans
+  - Interests (au-chips): 12 toggleable chips:
+      CV writing, Interview prep, Software development, Career change, Networking, Leadership,
+      Research, Industry insight, Entrepreneurship, Work-life balance, Graduate schemes, Job searching
+  - Availability slider (au-slider-wrap):
+      1–20 hrs/week range input with floating au-slider-bubble tooltip
+      positioned at ((value - 1) / 19) * 100%
+  - Format (au-formats-grid 3-col):
+      Chat (MessageSquare), Video (Video), In-person (MapPin) illustrated cards
+  - Validation: all 4 fields must be set before submit is enabled
+  - On success: navigates to role dashboard via getDashboardForRole(profile.role)
+  - Photo panel: alt-3 olive/tan gradient, Sofia Marchetti / Imperial quote
+
+
+ROUTE STRUCTURE — src/App.tsx
+------------------------------
+
+/                         GuestRoute → LandingPage
+/login                    GuestRoute → LoginPage
+/signup                   GuestRoute → SignupPage
+/forgot-password          GuestRoute → ForgotPasswordPage
+/auth/check-email         CheckEmailPage           (public, no guard)
+/auth/verify-email        EmailVerificationPage    (public, no guard)
+
+/onboarding/profile       ProtectedRoute → ProfileSetupPage
+/onboarding/mentorship    ProtectedRoute → MentorshipPrefsPage
+
+/dashboard                ProtectedRoute[STUDENT] → OnboardingGuard → StudentDashboard
+/alumni-dashboard         ProtectedRoute[ALUMNI, MENTOR, PROFESSIONAL] → OnboardingGuard → AlumniDashboard
+/admin                    ProtectedRoute[ADMIN] → AdminDashboard
+
+/mentorship               ProtectedRoute → OnboardingGuard → MentorshipPage
+/messages                 ProtectedRoute → OnboardingGuard → MessagesPage
+/community                ProtectedRoute → OnboardingGuard → CommunityPage
+/notifications            ProtectedRoute → OnboardingGuard → NotificationsPage
+/events                   ProtectedRoute → OnboardingGuard → EventsPage
+/careers                  ProtectedRoute → OnboardingGuard → CareersPage
+/resources                ProtectedRoute → OnboardingGuard → ResourcesPage
+/profile                  ProtectedRoute → OnboardingGuard → ProfilePage
+/settings                 ProtectedRoute → OnboardingGuard → SettingsPage
+
+*                         Navigate to /
+
+
+DASHBOARD & FEATURE PAGES
+--------------------------
+
+Page                Route               Description
+----                -----               -----------
+LandingPage         /                   Public marketing page (own CSS via landing.css)
+StudentDashboard    /dashboard          Student home with mentor recommendations
+AlumniDashboard     /alumni-dashboard   Alumni/Professional home
+AdminDashboard      /admin              Admin management panel
+MentorshipPage      /mentorship         Browse/request mentors, manage active relationships
+MessagesPage        /messages           Direct messaging with mentors/mentees
+CommunityPage       /community          Community posts, comments
+NotificationsPage   /notifications      Notification feed
+EventsPage          /events             Upcoming events calendar
+CareersPage         /careers            Job board and career resources
+ResourcesPage       /resources          Document/resource library
+ProfilePage         /profile            User profile editing
+SettingsPage        /settings           Account settings
+
+
+SUPPORTING INFRASTRUCTURE
+--------------------------
+
+Layout components:
+  DashboardLayout     — shared sidebar/topbar shell for all dashboard pages
+  MobileAppLayout     — bottom-tab navigation shell for mobile viewport
+
+UI components (shadcn/ui):
+  Button, Input, Textarea, Label, Card, Badge, Avatar, Skeleton, Separator,
+  Dialog, DropdownMenu, Tabs, Select, Progress, ScrollArea, Switch, Checkbox,
+  Tooltip, Alert
+
+Custom components:
+  VerificationBadge      — shows verified/pending/unverified status badge
+  NotificationItem       — individual notification row
+  PostCard + CommentThread — community post and comment components
+  MessageBubble          — chat message component
+  MentorCard             — mentor profile card
+  MentorRequestDialog    — modal to send mentorship request
+
+Feature hooks:
+  useMessages, useEvents, useCareers, useResources, useMentorship,
+  useCommunity, useNotifications
+
+
+COMPLETE USER JOURNEY
+---------------------
+
+New user lands on /
+    → If logged in         → redirected to dashboard (GuestRoute)
+    → If not               → sees LandingPage
+
+Signs up at /signup
+    → 3-step form: credentials → role → profile info
+    → POST /auth/register
+    → Redirected to /auth/check-email
+
+Clicks verification link (email)
+    → GET /auth/verify-email?token=...
+    → Success → "You're in." → sign in link
+
+Signs in at /login
+    → POST /auth/login (form-encoded)
+    → JWT stored, profile fetched
+    → If no role profile       → /onboarding/profile
+    → If no mentorship prefs   → /onboarding/mentorship
+    → Otherwise                → role dashboard
+
+Completes onboarding (2 steps)
+    → Step 1: role-specific profile (student / alumni / professional)
+    → Step 2: mentorship preferences
+    → Navigated to dashboard
+
+Uses dashboard features
+    → All routes guarded by ProtectedRoute + OnboardingGuard
+    → Incomplete onboarding mid-session → redirected back
+
+Signs out
+    → POST /auth/logout (refresh token revoked)
+    → Tokens cleared, state broadcast to all hook instances
+    → Next navigation to / or /login → GuestRoute passes through
+
+
+--
+Generated: 2026-04-19

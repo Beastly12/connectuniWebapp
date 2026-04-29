@@ -1,10 +1,18 @@
+import '@/styles/auth.css'
 import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { GraduationCap, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import { api } from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { api, getErrorMessage } from '@/lib/api'
 
 type Status = 'loading' | 'success' | 'error'
+
+function ArrowUpRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17L17 7M17 7H8M17 7V16" />
+    </svg>
+  )
+}
 
 export default function EmailVerificationPage() {
   const [searchParams] = useSearchParams()
@@ -26,83 +34,90 @@ export default function EmailVerificationPage() {
       })
       .catch((err) => {
         setStatus('error')
-        setMessage(
-          err instanceof Error ? err.message : 'Verification failed. The link may have expired.'
-        )
+        setMessage(getErrorMessage(err, 'Verification failed. The link may have expired.'))
       })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="pointer-events-none fixed top-0 right-0 h-64 w-64 rounded-full opacity-10"
-        style={{ background: 'radial-gradient(circle, hsl(var(--gradient-from, var(--primary))), transparent 70%)' }}
-      />
-
-      <div className="w-full max-w-[420px] text-center space-y-6">
-        {/* Brand */}
-        <div className="flex justify-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl gradient-primary shadow-glow-sm">
-            <GraduationCap className="h-4 w-4 text-white" />
-          </div>
+    <div className="au-screen">
+      {/* ── Form column ── */}
+      <div className="au-col-form">
+        <div className="au-form-header">
+          <Link to="/" className="au-brand">
+            <span className="au-logo-mark" />
+            ConnectUni
+          </Link>
         </div>
 
-        {status === 'loading' && (
-          <>
-            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-            <div className="space-y-1">
-              <h1 className="text-xl font-bold">Verifying your email…</h1>
-              <p className="text-sm text-muted-foreground">Just a moment</p>
-            </div>
-          </>
-        )}
-
-        {status === 'success' && (
-          <>
-            <div className="flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
-                <CheckCircle className="h-8 w-8 text-emerald-500" />
+        <div className="au-form-body">
+          {status === 'loading' && (
+            <>
+              <div style={{ marginBottom: 28 }}>
+                <Loader2 size={48} className="animate-spin" style={{ color: '#EF4B24' }} />
               </div>
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight">Email verified!</h1>
-              <p className="text-sm text-muted-foreground">
-                {message || 'Your account is now active. Sign in to get started.'}
+              <span className="au-eyebrow">Please wait</span>
+              <h1 className="au-display">Verifying your<br />email…</h1>
+              <p className="au-sub">Just a moment while we confirm your address.</p>
+            </>
+          )}
+
+          {status === 'success' && (
+            <>
+              <div className="au-big-icon">
+                <CheckCircle2 size={44} />
+              </div>
+              <span className="au-eyebrow">Verified</span>
+              <h1 className="au-display">You're in.</h1>
+              <p className="au-sub">{message || 'Your account is now active. Sign in to get started.'}</p>
+
+              <div className="au-success-panel">
+                <div className="au-sp-check">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <div className="au-sp-title">Email confirmed</div>
+                  <div className="au-sp-desc">Your account is ready to use.</div>
+                </div>
+              </div>
+
+              <div className="au-cta-row">
+                <Link to="/login" className="au-btn" style={{ textDecoration: 'none' }}>
+                  Continue to sign in
+                  <span className="au-arrow-circle"><ArrowUpRight /></span>
+                </Link>
+              </div>
+            </>
+          )}
+
+          {status === 'error' && (
+            <>
+              <div className="au-big-icon au-orange">
+                <XCircle size={44} />
+              </div>
+              <span className="au-eyebrow">Oops</span>
+              <h1 className="au-display">Verification<br />failed.</h1>
+              <p className="au-sub">{message}</p>
+
+              <div className="au-cta-row">
+                <Link to="/login" className="au-btn" style={{ textDecoration: 'none', flex: 1 }}>
+                  Go to sign in
+                  <span className="au-arrow-circle"><ArrowUpRight /></span>
+                </Link>
+              </div>
+              <p style={{ marginTop: 16, fontSize: 13, textAlign: 'center', color: '#6B6B6B' }}>
+                <Link to="/signup" style={{ color: '#1A1A1A', fontWeight: 600, textDecoration: 'none' }}>Create a new account</Link>
               </p>
-            </div>
-            <Button
-              asChild
-              className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity"
-            >
-              <Link to="/login">Continue to sign in</Link>
-            </Button>
-          </>
-        )}
+            </>
+          )}
+        </div>
 
-        {status === 'error' && (
-          <>
-            <div className="flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-                <XCircle className="h-8 w-8 text-destructive" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight">Verification failed</h1>
-              <p className="text-sm text-muted-foreground">{message}</p>
-            </div>
-            <div className="space-y-2">
-              <Button
-                asChild
-                className="w-full h-10 font-semibold gradient-primary border-0 text-white shadow-glow hover:opacity-90 transition-opacity"
-              >
-                <Link to="/login">Go to sign in</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full h-10 border-border/50">
-                <Link to="/signup">Create a new account</Link>
-              </Button>
-            </div>
-          </>
-        )}
+        <div className="au-form-footer">
+          <span>© {new Date().getFullYear()} ConnectUni</span>
+        </div>
       </div>
+
+      {/* ── Photo column ── */}
+      <div className="au-col-photo alt-1" />
     </div>
   )
 }

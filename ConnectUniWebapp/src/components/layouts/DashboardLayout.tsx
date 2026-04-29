@@ -1,194 +1,383 @@
-import { useState } from 'react'
+import { useState, useEffect, createContext, useContext } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Users,
-  MessageSquare,
-  Calendar,
-  Briefcase,
-  BookOpen,
-  Bell,
-  Settings,
-  LogOut,
-  GraduationCap,
-  LayoutDashboard,
-  Globe,
+  Home, Users, MessageSquare, Calendar, Briefcase, BookOpen,
+  Bell, Settings, Globe, User, Search, Moon, Sun, LogOut,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
-import { getInitials } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import type { BackendRole } from '@/hooks/useAuth'
 import { useNotifications } from '@/hooks/useNotifications'
 import { MobileAppLayout } from './MobileAppLayout'
+import { getInitials } from '@/lib/utils'
 
-interface NavItem {
+// ─── Design tokens ───────────────────────────────────────────────────────────
+export const C = {
+  orange: '#EF4B24',
+  charcoal: '#1A1A1A',
+  white: '#FFFFFF',
+  offWhite: '#F7F5F0',
+  mint: '#D4E8B8',
+  lavender: '#C8B8E0',
+  border: '#E5E5E5',
+  secondary: '#6B6B6B',
+  tertiary: '#9A9A9A',
+  darkBase: '#0E0E0E',
+  darkCard: '#161616',
+  darkBorder: '#2A2A2A',
+  darkText: '#F5F5F5',
+  pageBg: '#EDE9E3',
+}
+
+const AVATAR_COLORS = ['#C4705A', '#7A9E7E', '#C9972E', '#6B7FA3', '#8B6FA8', '#D4816B', '#5B8FA8', '#A87B5A']
+export const avatarBg = (name: string) => AVATAR_COLORS[(name || '').charCodeAt(0) % AVATAR_COLORS.length]
+
+// ─── Dark mode context ───────────────────────────────────────────────────────
+export const DarkModeContext = createContext<{ dark: boolean; toggleDark: () => void }>({
+  dark: false,
+  toggleDark: () => {},
+})
+export const useDarkMode = () => useContext(DarkModeContext)
+
+// ─── Nav config ──────────────────────────────────────────────────────────────
+interface NavConfig {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: any
   label: string
   href: string
-  icon: React.ElementType
   roles?: BackendRole[]
 }
 
-const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['STUDENT'] },
-  { label: 'Dashboard', href: '/alumni-dashboard', icon: LayoutDashboard, roles: ['ALUMNI', 'MENTOR', 'PROFESSIONAL'] },
-  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['ADMIN'] },
-  { label: 'Mentorship', href: '/mentorship', icon: Users },
-  { label: 'Messages', href: '/messages', icon: MessageSquare },
-  { label: 'Community', href: '/community', icon: Globe },
-  { label: 'Events', href: '/events', icon: Calendar },
-  { label: 'Careers', href: '/careers', icon: Briefcase },
-  { label: 'Resources', href: '/resources', icon: BookOpen },
-  { label: 'Notifications', href: '/notifications', icon: Bell },
+const NAV_ITEMS: NavConfig[] = [
+  { icon: Users,        label: 'Mentorship',  href: '/mentorship' },
+  { icon: MessageSquare,label: 'Messages',    href: '/messages' },
+  { icon: Briefcase,    label: 'Careers',     href: '/careers' },
+  { icon: Calendar,     label: 'Events',      href: '/events' },
+  { icon: BookOpen,     label: 'Resources',   href: '/resources' },
+  { icon: Globe,        label: 'Community',   href: '/community' },
+  { icon: Bell,         label: 'Notifications', href: '/notifications' },
+  { icon: User,         label: 'Profile',     href: '/profile' },
+  { icon: Settings,     label: 'Settings',    href: '/settings' },
 ]
 
-const bottomNavItems: NavItem[] = [
-  { label: 'Settings', href: '/settings', icon: Settings },
-]
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/alumni-dashboard': 'Dashboard',
+  '/admin': 'Admin',
+  '/mentorship': 'Mentorship',
+  '/messages': 'Messages',
+  '/community': 'Community',
+  '/events': 'Events',
+  '/careers': 'Careers',
+  '/resources': 'Resources',
+  '/notifications': 'Notifications',
+  '/settings': 'Settings',
+  '/profile': 'Profile',
+}
 
+// ─── Avatar circle ───────────────────────────────────────────────────────────
+export function AvatarCircle({ name = '?', size = 36 }: { name?: string; size?: number }) {
+  const initials = getInitials(name)
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: avatarBg(name),
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.36, fontWeight: 700, color: C.white,
+      flexShrink: 0, userSelect: 'none',
+    }}>
+      {initials}
+    </div>
+  )
+}
+
+// ─── Logo ────────────────────────────────────────────────────────────────────
+function Logo({ dark }: { dark: boolean }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
+      <div style={{
+        width: 34, height: 34, borderRadius: '50%', background: C.orange,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+          <path d="M10 2L18 7V13L10 18L2 13V7L10 2Z" fill="white" opacity="0.9"/>
+          <circle cx="10" cy="10" r="3" fill="white"/>
+        </svg>
+      </div>
+      <div style={{ lineHeight: 1 }}>
+        <span style={{ fontSize: 16, fontWeight: 800, color: dark ? C.darkText : C.charcoal }}>Connect</span>
+        <span style={{ fontSize: 16, fontWeight: 800, color: C.orange }}>Uni</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Sidebar nav item ────────────────────────────────────────────────────────
+function SidebarItem({
+  item, active, dark, badge, onClick,
+}: {
+  item: NavConfig
+  active: boolean
+  dark: boolean
+  badge?: number
+  onClick?: () => void
+}) {
+  const [hov, setHov] = useState(false)
+  const IconComp = item.icon
+  return (
+    <Link
+      to={item.href}
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '9px 12px', borderRadius: 100,
+        background: active
+          ? C.orange
+          : hov
+            ? (dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)')
+            : 'transparent',
+        color: active ? C.white : (dark ? C.darkText : C.charcoal),
+        fontSize: 14, fontWeight: active ? 600 : 500,
+        textDecoration: 'none',
+        transition: 'background 0.15s',
+        userSelect: 'none',
+      }}
+    >
+      <IconComp style={{
+        width: 16, height: 16, flexShrink: 0,
+        color: active ? C.white : (dark ? '#A0A0A0' : C.secondary),
+      }} />
+      <span style={{ flex: 1 }}>{item.label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span style={{
+          background: active ? 'rgba(255,255,255,0.3)' : C.orange,
+          color: C.white, fontSize: 11, fontWeight: 700,
+          borderRadius: 100, padding: '1px 7px', minWidth: 20, textAlign: 'center',
+        }}>
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
+    </Link>
+  )
+}
+
+// ─── DashboardLayout ─────────────────────────────────────────────────────────
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile, role, signOut } = useAuth()
   const { unreadCount } = useNotifications(profile?.user_id ?? undefined)
   const location = useLocation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [dark, setDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cu-dark')
+      // Default to light mode (dark=false) if not set
+      return saved === '1'
+    } catch { return false }
+  })
 
-  const visibleNav = navItems.filter(
-    (item) => !item.roles || (role && item.roles.includes(role))
-  )
+  useEffect(() => {
+    try { localStorage.setItem('cu-dark', dark ? '1' : '0') } catch {}
+    // Sync Tailwind theme: the CSS uses `.light` class for light mode (dark is :root default)
+    document.documentElement.classList.toggle('light', !dark)
+  }, [dark])
+
+  // Apply on mount to sync initial state
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', !dark)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const toggleDark = () => setDark(d => !d)
+
+  const homeHref =
+    role === 'ADMIN' ? '/admin'
+    : (role === 'ALUMNI' || role === 'MENTOR' || role === 'PROFESSIONAL') ? '/alumni-dashboard'
+    : '/dashboard'
+
+  const homeItem: NavConfig = { icon: Home, label: 'Home', href: homeHref }
+
+  const visibleNav = [
+    homeItem,
+    ...NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role))),
+  ]
+
+  const pageTitle = Object.entries(PAGE_TITLES).find(
+    ([path]) => location.pathname === path || location.pathname.startsWith(path + '/')
+  )?.[1] ?? 'ConnectUni'
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/login')
   }
 
-  const NavLink = ({ item }: { item: NavItem }) => {
-    const isActive =
-      location.pathname === item.href ||
-      (item.href !== '/' && location.pathname.startsWith(item.href))
-    return (
-      <Link
-        to={item.href}
-        onClick={() => setSidebarOpen(false)}
-        className={cn(
-          'group relative flex items-center gap-3 rounded-lg py-2 pl-3 pr-3 text-sm transition-all duration-200',
-          isActive
-            ? 'bg-sidebar-accent text-sidebar-foreground font-medium'
-            : 'text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/80'
-        )}
-      >
-        {/* Active left bar */}
-        {isActive && (
-          <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full gradient-primary" />
-        )}
-        <item.icon
-          className={cn(
-            'h-4 w-4 shrink-0 transition-colors',
-            isActive
-              ? 'text-sidebar-primary'
-              : 'text-sidebar-foreground/45 group-hover:text-sidebar-foreground/70'
-          )}
-        />
-        <span className="flex-1">{item.label}</span>
-        {item.href === '/notifications' && unreadCount > 0 && (
-          <span className="flex h-4 min-w-4 items-center justify-center rounded-full gradient-primary px-1 text-[9px] font-bold text-white tabular-nums shadow-glow-sm">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-      </Link>
-    )
-  }
+  const isActive = (href: string) =>
+    location.pathname === href || (href !== '/' && location.pathname.startsWith(href))
 
-  const SidebarContent = () => (
-    <div className="relative flex h-full flex-col overflow-hidden">
-      {/* Ambient mesh gradient */}
-      <div className="pointer-events-none absolute inset-0 mesh-gradient opacity-60" />
-
-      {/* Brand */}
-      <div className="relative flex h-[60px] items-center gap-3 px-4 border-b border-sidebar-border/50">
-        <div className="relative flex h-8 w-8 items-center justify-center rounded-xl gradient-primary shadow-glow-sm shrink-0">
-          <GraduationCap className="h-4.5 w-4.5 text-white" style={{ height: '1.1rem', width: '1.1rem' }} />
-        </div>
-        <div>
-          <span className="text-sm font-bold tracking-tight gradient-text">
-            ConnectUni
-          </span>
-          <p className="text-[10px] text-sidebar-foreground/40 capitalize leading-none mt-0.5">
-            {role?.toLowerCase() ?? 'platform'}
-          </p>
-        </div>
-      </div>
-
-      {/* Main nav */}
-      <ScrollArea className="relative flex-1 px-2 py-3 scrollbar-thin">
-        <nav className="space-y-0.5">
-          {visibleNav.map((item) => (
-            <NavLink key={item.href + item.label} item={item} />
-          ))}
-        </nav>
-
-        <div className="my-3 mx-1 h-px bg-sidebar-border/60" />
-
-        <nav className="space-y-0.5">
-          {bottomNavItems.map((item) => (
-            <NavLink key={item.href} item={item} />
-          ))}
-        </nav>
-      </ScrollArea>
-
-      {/* User section */}
-      <div className="relative border-t border-sidebar-border/50 px-2 py-3">
-        <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-sidebar-accent/40 transition-colors">
-          <Link to="/profile" onClick={() => setSidebarOpen(false)} className="shrink-0">
-            <div className="relative">
-              <Avatar className="h-7 w-7 ring-1 ring-sidebar-primary/30">
-                <AvatarImage src={profile?.avatar_url ?? undefined} />
-                <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-[10px] font-semibold">
-                  {getInitials(profile?.full_name ?? 'U')}
-                </AvatarFallback>
-              </Avatar>
-              <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 border border-sidebar-background" />
-            </div>
-          </Link>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">
-              {profile?.full_name ?? 'User'}
-            </p>
-            <p className="text-[10px] text-sidebar-foreground/45 capitalize truncate">
-              {role?.toLowerCase() ?? 'member'}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0 text-sidebar-foreground/35 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            onClick={handleSignOut}
-            title="Sign out"
-          >
-            <LogOut className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+  const userName = profile?.full_name ?? 'User'
 
   return (
-    <>
-      {/* ── Desktop layout (lg+) ── */}
-      <div className="hidden lg:flex h-screen bg-background">
-        <aside className="flex w-64 flex-col bg-sidebar border-r border-sidebar-border shrink-0">
-          <SidebarContent />
-        </aside>
+    <DarkModeContext.Provider value={{ dark, toggleDark }}>
+      {/* ── Desktop (lg+) ── */}
+      <div
+        className="hidden lg:block"
+        style={{
+          height: '100vh',
+          background: dark ? C.darkBase : C.pageBg,
+          fontFamily: 'Plus Jakarta Sans, sans-serif',
+          transition: 'background 0.3s',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Floating Sidebar */}
+        <div style={{
+          position: 'fixed', left: 16, top: 16, bottom: 16, width: 240, zIndex: 100,
+          background: dark ? '#161616' : C.white,
+          borderRadius: 24,
+          border: `1px solid ${dark ? C.darkBorder : C.border}`,
+          boxShadow: dark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.06)',
+          display: 'flex', flexDirection: 'column',
+          padding: '24px 14px',
+          transition: 'background 0.3s, border-color 0.3s',
+        }}>
+          {/* Logo */}
+          <div style={{ marginBottom: 28 }}>
+            <Logo dark={dark} />
+          </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-auto scrollbar-thin">
+          {/* Nav items */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
+            {visibleNav.map((item) => (
+              <SidebarItem
+                key={item.href + item.label}
+                item={item}
+                active={isActive(item.href)}
+                dark={dark}
+                badge={item.href === '/notifications' ? (unreadCount > 0 ? unreadCount : undefined) : undefined}
+              />
+            ))}
+          </div>
+
+          {/* User row */}
+          <div style={{
+            borderTop: `1px solid ${dark ? C.darkBorder : C.border}`,
+            paddingTop: 16, marginTop: 8,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <Link to="/profile" style={{ textDecoration: 'none', flexShrink: 0 }}>
+              <AvatarCircle name={userName} size={38} />
+            </Link>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: 13, fontWeight: 600,
+                color: dark ? C.darkText : C.charcoal,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {userName.split(' ')[0]}
+              </div>
+              <div style={{
+                fontSize: 11, color: C.tertiary,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                textTransform: 'capitalize',
+              }}>
+                {role?.toLowerCase() ?? 'member'}
+              </div>
+            </div>
+            <button
+              onClick={handleSignOut}
+              title="Sign out"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: C.tertiary, padding: 4, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <LogOut style={{ width: 14, height: 14 }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div style={{
+          marginLeft: 272, height: '100vh',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          {/* TopBar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '16px 24px 8px',
+            flexShrink: 0,
+          }}>
+            {/* Breadcrumb */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: C.orange, fontSize: 16, lineHeight: 1 }}>•</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: dark ? C.darkText : C.charcoal }}>
+                {pageTitle}
+              </span>
+            </div>
+
+            {/* Search pill */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 16px', borderRadius: 100,
+              background: dark ? '#1A1A1A' : C.white,
+              border: `1px solid ${dark ? C.darkBorder : C.border}`,
+              color: C.tertiary, fontSize: 13, cursor: 'text',
+              userSelect: 'none',
+            }}>
+              <Search style={{ width: 14, height: 14, color: C.tertiary, flexShrink: 0 }} />
+              <span>Search...</span>
+            </div>
+
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggleDark}
+              style={{
+                width: 36, height: 36, borderRadius: '50%',
+                border: `1px solid ${dark ? C.darkBorder : C.border}`,
+                background: dark ? '#1A1A1A' : C.white,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {dark
+                ? <Sun style={{ width: 16, height: 16, color: '#D0D0D0' }} />
+                : <Moon style={{ width: 16, height: 16, color: C.secondary }} />
+              }
+            </button>
+
+            {/* Bell */}
+            <Link to="/notifications" style={{ textDecoration: 'none', flexShrink: 0 }}>
+              <div style={{ position: 'relative', padding: 4, cursor: 'pointer' }}>
+                <Bell style={{ width: 20, height: 20, color: dark ? '#D0D0D0' : C.secondary }} />
+                {unreadCount > 0 && (
+                  <div style={{
+                    position: 'absolute', top: 2, right: 2,
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: C.orange,
+                    border: `2px solid ${dark ? C.darkBase : C.pageBg}`,
+                  }} />
+                )}
+              </div>
+            </Link>
+
+            {/* Avatar */}
+            <Link to="/profile" style={{ textDecoration: 'none', flexShrink: 0 }}>
+              <AvatarCircle name={userName} size={36} />
+            </Link>
+          </div>
+
+          {/* Scrollable page content */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 32px' }}>
             {children}
-          </main>
+          </div>
         </div>
       </div>
 
-      {/* ── Mobile layout (<lg) — bottom tabs ── */}
+      {/* ── Mobile (<lg) ── */}
       <div className="lg:hidden">
         <MobileAppLayout
           role={role}
@@ -203,6 +392,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {children}
         </MobileAppLayout>
       </div>
-    </>
+    </DarkModeContext.Provider>
   )
 }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatRelativeTime, getInitials } from '@/lib/utils'
 import { useComments, useAddComment } from '@/hooks/useCommunity'
+import { getErrorMessage } from '@/lib/api'
 
 interface CommentThreadProps {
   postId: string
@@ -24,8 +25,8 @@ export function CommentThread({ postId, currentUserId }: CommentThreadProps) {
     try {
       await addComment.mutateAsync({ postId, authorId: currentUserId, content: text.trim() })
       setText('')
-    } catch {
-      toast.error('Failed to add comment')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to add comment'))
     }
   }
 

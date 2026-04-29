@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useFullProfile, hasRoleProfile } from '@/hooks/useOnboarding'
+import { ApiError, getErrorMessage } from '@/lib/api'
 
 /**
  * Wraps protected dashboard routes.
@@ -8,7 +9,7 @@ import { useFullProfile, hasRoleProfile } from '@/hooks/useOnboarding'
  * Must be placed inside a ProtectedRoute (auth is already confirmed there).
  */
 export function OnboardingGuard({ children }: { children: React.ReactNode }) {
-  const { data: profile, isLoading, isFetching, isError } = useFullProfile()
+  const { data: profile, isLoading, isFetching, isError, error } = useFullProfile()
 
   // Wait for both the initial load AND any in-flight background refetch.
   // Without the isFetching check, navigating away from MentorshipPrefsPage
@@ -26,9 +27,30 @@ export function OnboardingGuard({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // If the full profile can't be fetched (e.g., new user with no role profile yet),
-  // route to profile setup. ProtectedRoute has already confirmed auth is valid.
-  if (isError || !profile) {
+  // A missing profile should go to onboarding, but transport/server failures should
+  // not be mistaken for incomplete onboarding.
+  if (error instanceof ApiError && error.status === 401) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (error instanceof ApiError && error.status === 404) {
+    return <Navigate to="/onboarding/profile" replace />
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-screen items-center justify-center px-6">
+        <div className="max-w-md space-y-3 text-center">
+          <h2 className="text-lg font-semibold">We couldn&apos;t load your profile</h2>
+          <p className="text-sm text-muted-foreground">
+            {getErrorMessage(error, 'Please refresh and try again.')}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profile) {
     return <Navigate to="/onboarding/profile" replace />
   }
 
