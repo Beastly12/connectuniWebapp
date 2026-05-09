@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Search, X, ChevronLeft, ChevronRight, Star, Calendar, Plus,
-  Link as LinkIcon, BookOpen, CheckCircle, Users, Trash2,
+  Link as LinkIcon, BookOpen, CheckCircle, Users, Trash2, MessageSquare,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DashboardLayout, C, AvatarCircle, useDarkMode } from '@/components/layouts/DashboardLayout'
@@ -17,6 +18,7 @@ import {
 } from '@/hooks/useMentorship'
 import type { MentorProfile, MyMenteeResponse, MyMentorResponse } from '@/hooks/useMentorship'
 import { MentorRequestDialog } from '@/components/mentorship/MentorRequestDialog'
+import { useStartConversation } from '@/hooks/useMessages'
 import { useAuth } from '@/hooks/useAuth'
 import { getErrorMessage } from '@/lib/api'
 import { format, isPast } from 'date-fns'
@@ -331,6 +333,8 @@ function RelationshipCard({ rel, role, dark }: {
   const [milestoneOpen, setMilestoneOpen] = useState(false)
   const [resourceOpen, setResourceOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const navigate = useNavigate()
+  const startConversation = useStartConversation()
 
   const { data: sessions = [] } = useSessions(expanded ? rel.relationship_id : undefined)
   const { data: milestones = [] } = useMilestones(expanded ? rel.relationship_id : undefined)
@@ -390,6 +394,19 @@ function RelationshipCard({ rel, role, dark }: {
               <button onClick={() => setScheduleOpen(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 100, border: 'none', background: C.orange, color: C.white, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                 <Calendar style={{ width: 12, height: 12 }} /> Schedule Session
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await startConversation.mutateAsync(person.user_id)
+                    navigate('/messages')
+                  } catch {
+                    toast.error('Could not open conversation')
+                  }
+                }}
+                disabled={startConversation.isPending}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 100, border: `1.5px solid ${dark ? '#333' : C.border}`, background: 'transparent', color: dark ? C.darkText : C.charcoal, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <MessageSquare style={{ width: 12, height: 12 }} /> Message
               </button>
               {role === 'mentor' && (
                 <button onClick={() => setMilestoneOpen(true)}
