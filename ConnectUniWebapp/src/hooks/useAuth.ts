@@ -12,6 +12,7 @@ export interface AuthUser {
 export interface AuthProfile {
   id: number
   user_id: number
+  role?: BackendRole | null
   full_name: string | null
   avatar_url: string | null
   headline: string | null
@@ -83,7 +84,7 @@ function boot() {
 
   broadcast({ user, role })
   api.get<AuthProfile>('/profile/me')
-    .then((profile) => broadcast({ profile, loading: false }))
+    .then((profile) => broadcast({ profile, loading: false, role: profile.role ?? role }))
     .catch(() => broadcast({ loading: false }))
 }
 
@@ -113,7 +114,7 @@ export function useAuth() {
       broadcast({ user, role })
       try {
         const profile = await api.get<AuthProfile>('/profile/me')
-        broadcast({ profile })
+        broadcast({ profile, role: profile.role ?? role })
       } catch { /* profile may not exist yet */ }
       return null
     } catch (err) {

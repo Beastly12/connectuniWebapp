@@ -6,6 +6,8 @@ import { MentorRequestDialog } from '@/components/mentorship/MentorRequestDialog
 import { useAuth } from '@/hooks/useAuth'
 import { useMentors, useMyMentors, useOutgoingRequests } from '@/hooks/useMentorship'
 import type { MentorProfile } from '@/hooks/useMentorship'
+import { useActivityFeed, useProfileCompletion, useDashboardStats } from '@/hooks/useDashboard'
+import type { ActivityItem } from '@/hooks/useDashboard'
 
 // ─── Eyebrow label ───────────────────────────────────────────────────────────
 function Eyebrow({ label }: { label: string }) {
@@ -245,7 +247,7 @@ function MyMentorsStrip({ mentors, dark }: { mentors: Array<{ id: string; mentor
 }
 
 // ─── Feature grid ────────────────────────────────────────────────────────────
-function FeatureGrid({ dark }: { dark: boolean }) {
+function FeatureGrid({ dark, upcomingEventsCount }: { dark: boolean; upcomingEventsCount?: number }) {
   const [hov, setHov] = useState<string | null>(null)
   const today = new Date()
   return (
@@ -329,7 +331,9 @@ function FeatureGrid({ dark }: { dark: boolean }) {
             </div>
             <div style={{ position: 'absolute', bottom: 14, left: 14 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: C.white }}>Events</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Upcoming</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+                {upcomingEventsCount != null ? `${upcomingEventsCount} upcoming` : 'Upcoming'}
+              </div>
             </div>
           </div>
         </Link>
@@ -367,14 +371,36 @@ function FeatureGrid({ dark }: { dark: boolean }) {
 }
 
 // ─── Activity feed ───────────────────────────────────────────────────────────
-function ActivityFeed({ dark, activeMentorships, pendingRequests }: {
+function formatRelativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
+function ActivityFeed({ dark, activeMentorships, pendingRequests, activityItems, profileCompletion, unreadMessages }: {
   dark: boolean
   activeMentorships: Array<{ id: string; mentor: { full_name: string } }>
   pendingRequests: Array<{ id: string; mentor: { full_name: string } }>
+  activityItems: ActivityItem[]
+  profileCompletion?: { percentage: number; missing_fields: string[] } | null
+  unreadMessages?: number
 }) {
   const cardBg = dark ? '#161616' : C.white
 
-  const todayItems = [
+  // Build display items from real API data if available, fall back to derived mentorship data
+  const apiItems = activityItems.map(a => ({
+    name: a.actor_name,
+    action: a.description,
+    time: formatRelativeTime(a.created_at),
+    positive: !['request_rejected', 'session_cancelled'].includes(a.type),
+  }))
+
+  const fallbackItems = [
     ...activeMentorships.slice(0, 2).map(m => ({
       name: m.mentor.full_name, action: 'is your active mentor', time: 'Active', positive: true,
     })),
@@ -383,15 +409,52 @@ function ActivityFeed({ dark, activeMentorships, pendingRequests }: {
     })),
   ]
 
-  const platformItems = [
+  const displayItems = apiItems.length > 0 ? apiItems : fallbackItems.length > 0 ? fallbackItems : [
     { name: 'ConnectUni', action: 'Welcome to your dashboard', time: 'Today', positive: true },
     { name: 'ConnectUni', action: 'Complete your profile for better matches', time: 'Tip', positive: false },
   ]
 
-  const displayItems = todayItems.length > 0 ? todayItems : platformItems
-
   return (
     <div style={{ width: 280, flexShrink: 0, marginLeft: 20 }}>
+      {/* Profile completion widget */}
+      {profileCompletion != null && profileCompletion.percentage < 100 && (
+        <div style={{
+          background: cardBg, borderRadius: 20,
+          border: `1px solid ${dark ? '#2A2A2A' : C.border}`,
+          padding: '16px 18px', marginBottom: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: dark ? C.darkText : C.charcoal }}>Profile</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: C.orange }}>{profileCompletion.percentage}%</span>
+          </div>
+          <div style={{ height: 6, borderRadius: 3, background: dark ? '#2A2A2A' : '#F0EDE6', overflow: 'hidden', marginBottom: 8 }}>
+            <div style={{ height: '100%', width: `${profileCompletion.percentage}%`, background: C.orange, borderRadius: 3, transition: 'width 0.4s' }} />
+          </div>
+          {profileCompletion.missing_fields.length > 0 && (
+            <div style={{ fontSize: 11, color: C.secondary }}>
+              Missing: {profileCompletion.missing_fields.slice(0, 2).join(', ')}
+              {profileCompletion.missing_fields.length > 2 ? ` +${profileCompletion.missing_fields.length - 2}` : ''}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Messages unread badge */}
+      {unreadMessages != null && unreadMessages > 0 && (
+        <Link to="/messages" style={{ textDecoration: 'none' }}>
+          <div style={{
+            background: C.orange, borderRadius: 20, padding: '14px 18px',
+            marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: C.white, lineHeight: 1 }}>{unreadMessages}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>Unread messages</div>
+            </div>
+            <MessageSquare style={{ width: 22, height: 22, color: 'rgba(255,255,255,0.7)' }} />
+          </div>
+        </Link>
+      )}
+
       <div style={{
         background: cardBg, borderRadius: 20,
         border: `1px solid ${dark ? '#2A2A2A' : C.border}`,
@@ -409,7 +472,7 @@ function ActivityFeed({ dark, activeMentorships, pendingRequests }: {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {displayItems.map((item, i) => (
+          {displayItems.slice(0, 6).map((item, i) => (
             <div key={i} style={{
               display: 'flex', gap: 10, padding: '10px 0',
               borderBottom: `1px solid ${dark ? '#1E1E1E' : '#F5F3EF'}`,
@@ -452,11 +515,14 @@ function StudentDashboardContent() {
   const { data: mentors = [], isLoading: mentorsLoading } = useMentors()
   const { data: relationships = [] } = useMyMentors()
   const { data: outgoingRequests = [] } = useOutgoingRequests()
+  const { data: activityItems = [] } = useActivityFeed(8)
+  const { data: profileCompletion } = useProfileCompletion()
+  const { data: dashboardStats } = useDashboardStats()
   const [selectedMentor, setSelectedMentor] = useState<MentorProfile | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const activeMentorships = relationships.filter((m) => m.status === 'ACTIVE')
-  const pendingRequests = outgoingRequests.filter((r) => r.status === 'PENDING')
+  const activeMentorships = relationships.filter((m) => m.status.toLowerCase() === 'active')
+  const pendingRequests = outgoingRequests.filter((r) => r.status.toLowerCase() === 'pending')
   const pendingMentorIds = new Set([
     ...activeMentorships.map((m) => m.mentor_id),
     ...pendingRequests.map((r) => r.mentor_id),
@@ -478,6 +544,10 @@ function StudentDashboardContent() {
         mentorsLoading={mentorsLoading}
         pendingMentorIds={pendingMentorIds}
         onRequest={(m) => { setSelectedMentor(m); setDialogOpen(true) }}
+        activityItems={activityItems}
+        profileCompletion={profileCompletion}
+        upcomingEventsCount={dashboardStats?.upcoming_events}
+        unreadMessages={dashboardStats?.messages_unread}
       />
       <MentorRequestDialog
         mentor={selectedMentor}
@@ -500,6 +570,7 @@ export default function StudentDashboard() {
 function StudentDashboardInner({
   dark, firstName, greeting, activeMentorships, pendingRequests,
   mentors, mentorsLoading, pendingMentorIds, onRequest,
+  activityItems, profileCompletion, upcomingEventsCount, unreadMessages,
 }: {
   dark: boolean
   firstName: string
@@ -512,6 +583,10 @@ function StudentDashboardInner({
   mentorsLoading: boolean
   pendingMentorIds: Set<number>
   onRequest: (m: MentorProfile) => void
+  activityItems: ActivityItem[]
+  profileCompletion?: { percentage: number; missing_fields: string[] } | null
+  upcomingEventsCount?: number
+  unreadMessages?: number
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
@@ -575,7 +650,7 @@ function StudentDashboardInner({
         <MyMentorsStrip mentors={activeMentorships} dark={dark} />
 
         {/* Feature grid */}
-        <FeatureGrid dark={dark} />
+        <FeatureGrid dark={dark} upcomingEventsCount={upcomingEventsCount} />
       </div>
 
       {/* Activity Feed */}
@@ -583,6 +658,9 @@ function StudentDashboardInner({
         dark={dark}
         activeMentorships={activeMentorships}
         pendingRequests={pendingRequests}
+        activityItems={activityItems}
+        profileCompletion={profileCompletion}
+        unreadMessages={unreadMessages}
       />
     </div>
   )

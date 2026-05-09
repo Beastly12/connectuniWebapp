@@ -46,6 +46,7 @@ const TESTIMONIALS: Testimonial[] = [
 
 const BAR_HEIGHTS = [38, 62, 44, 88, 68, 28, 52]
 const BAR_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const HERO_IMAGE_URL = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=900&q=75'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -285,10 +286,10 @@ export default function LandingPage() {
 
               {/* Left — copy */}
               <div>
-                <span className="lp-eyebrow lp-reveal">Your university, connected</span>
+                <span className="lp-eyebrow">Your university, connected</span>
 
                 <h1
-                  className="lp-display-xl lp-reveal lp-reveal-delay-1"
+                  className="lp-display-xl"
                   id="hero-heading"
                 >
                   Where students<br />
@@ -296,12 +297,12 @@ export default function LandingPage() {
                   who came before
                 </h1>
 
-                <p className="lp-hero-sub lp-reveal lp-reveal-delay-2">
+                <p className="lp-hero-sub">
                   ConnectUni bridges the gap between students and alumni — enabling
                   mentorship, career guidance, and community across universities.
                 </p>
 
-                <div className="lp-hero-ctas lp-reveal lp-reveal-delay-3">
+                <div className="lp-hero-ctas">
                   <Link to="/signup" className="lp-btn lp-btn-primary">
                     Join ConnectUni
                     <span className="lp-arrow-circle" aria-hidden="true">
@@ -313,7 +314,7 @@ export default function LandingPage() {
                   </a>
                 </div>
 
-                <div className="lp-hero-meta lp-reveal lp-reveal-delay-4">
+                <div className="lp-hero-meta">
                   <div>
                     <div className="lp-stat-num">12k+</div>
                     <span className="lp-stat-unit">Students connected</span>
@@ -331,10 +332,14 @@ export default function LandingPage() {
 
               {/* Right — image placeholder with floating UI cards */}
               <div style={{ position: 'relative' }}>
-                <div className="lp-hero-image lp-reveal">
+                <div className="lp-hero-image">
                   <img
-                    src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80"
+                    src={HERO_IMAGE_URL}
                     alt="Students collaborating and networking on campus"
+                    width="900"
+                    height="1125"
+                    fetchPriority="high"
+                    decoding="async"
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
                 </div>
@@ -361,8 +366,8 @@ export default function LandingPage() {
                 {/* Floating members pill */}
                 <div className="lp-floating-members" aria-hidden="true">
                   <div className="lp-avatar-stack">
-                    {[10, 20, 30, 40].map((n) => (
-                      <img key={n} className="lp-av" src={`https://i.pravatar.cc/40?img=${n}`} alt="" />
+                    {['lp-av-1', 'lp-av-2', 'lp-av-3', 'lp-av-4'].map((className) => (
+                      <div key={className} className={`lp-av ${className}`} />
                     ))}
                     <div className="lp-av lp-av-5">+</div>
                   </div>
@@ -377,7 +382,7 @@ export default function LandingPage() {
         </section>
 
         {/* ═══ About ═════════════════════════════════════════════════════════ */}
-        <section className="lp-about" id="about" aria-labelledby="about-heading">
+        <section className="lp-about lp-defer-section" id="about" aria-labelledby="about-heading">
           <div className="lp-wrap">
             <div className="lp-about-grid">
 
@@ -445,7 +450,7 @@ export default function LandingPage() {
 
         {/* ═══ Roles ═════════════════════════════════════════════════════════ */}
         <section
-          className="lp-roles"
+          className="lp-roles lp-defer-section"
           id="features"
           aria-labelledby="roles-heading"
         >
@@ -471,7 +476,7 @@ export default function LandingPage() {
               {/* Students */}
               <article className="lp-role-card photo lp-reveal" tabIndex={0}>
                 <div className="ph-bg" aria-hidden="true">
-                  <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=75" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                  <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=75" alt="" width="600" height="750" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" decoding="async" />
                 </div>
                 <div className="top">
                   <span className="index lp-mono">01</span>
@@ -492,7 +497,7 @@ export default function LandingPage() {
               {/* Alumni */}
               <article className="lp-role-card photo lp-reveal lp-reveal-delay-1" tabIndex={0}>
                 <div className="ph-bg" aria-hidden="true">
-                  <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=600&q=75" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                  <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=600&q=75" alt="" width="600" height="750" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" decoding="async" />
                 </div>
                 <div className="top">
                   <span className="index lp-mono">02</span>
@@ -513,7 +518,7 @@ export default function LandingPage() {
               {/* Professionals */}
               <article className="lp-role-card photo lp-reveal lp-reveal-delay-2" tabIndex={0}>
                 <div className="ph-bg" aria-hidden="true">
-                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=75" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=75" alt="" width="600" height="750" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" decoding="async" />
                 </div>
                 <div className="top">
                   <span className="index lp-mono">03</span>
@@ -554,7 +559,7 @@ export default function LandingPage() {
 
         {/* ═══ Why ═══════════════════════════════════════════════════════════ */}
         <section
-          className="lp-why"
+          className="lp-why lp-defer-section"
           id="how-it-works"
           aria-labelledby="why-heading"
         >
@@ -716,7 +721,7 @@ export default function LandingPage() {
         </section>
 
         {/* ═══ Dashboard Preview ═════════════════════════════════════════════ */}
-        <section className="lp-dash-preview" aria-labelledby="dashboard-heading">
+        <section className="lp-dash-preview lp-defer-section" aria-labelledby="dashboard-heading">
           <div className="lp-wrap">
             <div className="lp-dash-preview-header lp-reveal">
               <span className="lp-eyebrow">The platform</span>
@@ -859,7 +864,7 @@ export default function LandingPage() {
         </section>
 
         {/* ═══ Mission ═══════════════════════════════════════════════════════ */}
-        <section className="lp-mission" aria-labelledby="mission-heading">
+        <section className="lp-mission lp-defer-section" aria-labelledby="mission-heading">
           <div className="lp-wrap">
             <div className="lp-mission-card lp-reveal">
               <span className="lp-eyebrow">Our mission</span>
@@ -883,7 +888,7 @@ export default function LandingPage() {
 
         {/* ═══ Testimonials ══════════════════════════════════════════════════ */}
         <section
-          className="lp-testimonials"
+          className="lp-testimonials lp-defer-section"
           id="community"
           aria-labelledby="testimonials-heading"
         >
@@ -922,7 +927,7 @@ export default function LandingPage() {
               style={{ ...av.pos, overflow: 'hidden' }}
               aria-hidden="true"
             >
-              <img src={`https://i.pravatar.cc/56?img=${av.img}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+              <img src={`https://i.pravatar.cc/56?img=${av.img}`} alt="" width="56" height="56" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" decoding="async" />
             </div>
           ))}
 
@@ -966,6 +971,10 @@ export default function LandingPage() {
                         className="lp-av"
                         src={t.avatarUrl}
                         alt={t.name}
+                        width="40"
+                        height="40"
+                        loading="lazy"
+                        decoding="async"
                         style={{ width: '40px', height: '40px' }}
                       />
                       <div>
@@ -1005,7 +1014,7 @@ export default function LandingPage() {
       </main>
 
       {/* ═══ Footer ════════════════════════════════════════════════════════ */}
-      <footer className="lp-footer" aria-label="Site footer">
+      <footer className="lp-footer lp-defer-section" aria-label="Site footer">
         <div className="lp-wrap">
           <div className="lp-footer-grid">
 

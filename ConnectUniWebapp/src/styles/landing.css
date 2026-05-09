@@ -126,6 +126,11 @@
   padding: 0 clamp(20px, 3vw, 40px);
 }
 
+.lp-defer-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 900px;
+}
+
 /* ─── Buttons ────────────────────────────────────────────────────────────────── */
 .lp-btn {
   display: inline-flex;

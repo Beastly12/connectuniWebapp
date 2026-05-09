@@ -5,8 +5,8 @@
  * - Normalizes backend failures into ApiError instances
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000"
-// const BASE_URL = "http://localhost:8000"
+const BASE_URL = import.meta.env.VITE_API_URL ?? "https://cuni-api.ddns.net"
+// const BASE_URL = "https://cuni-api.ddns.net"
 
 type QueryParamValue = string | number | boolean | undefined
 

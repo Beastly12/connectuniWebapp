@@ -74,6 +74,33 @@ const PAGE_TITLES: Record<string, string> = {
   '/profile': 'Profile',
 }
 
+const dashboardMap: Record<BackendRole, string> = {
+  STUDENT: '/dashboard',
+  ALUMNI: '/alumni-dashboard',
+  MENTOR: '/alumni-dashboard',
+  PROFESSIONAL: '/alumni-dashboard',
+  ADMIN: '/admin',
+}
+
+function roleFromStoredToken(): BackendRole | null {
+  const token = localStorage.getItem('access_token')
+  if (!token) return null
+
+  try {
+    const base64Url = token.split('.')[1]
+    if (!base64Url) return null
+
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(base64))
+
+    return typeof payload?.role === 'string'
+      ? payload.role as BackendRole
+      : null
+  } catch {
+    return null
+  }
+}
+
 // ─── Avatar circle ───────────────────────────────────────────────────────────
 export function AvatarCircle({ name = '?', size = 36 }: { name?: string; size?: number }) {
   const initials = getInitials(name)
@@ -164,8 +191,10 @@ function SidebarItem({
 
 // ─── DashboardLayout ─────────────────────────────────────────────────────────
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { profile, role, signOut } = useAuth()
-  const { unreadCount } = useNotifications(profile?.user_id ?? undefined)
+  const { user, profile, role: authRole, signOut } = useAuth()
+
+  const role = authRole ?? roleFromStoredToken()
+  const { unreadCount } = useNotifications(user?.id)
   const location = useLocation()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -188,13 +217,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle('light', !dark)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
+  
   const toggleDark = () => setDark(d => !d)
 
-  const homeHref =
-    role === 'ADMIN' ? '/admin'
-    : (role === 'ALUMNI' || role === 'MENTOR' || role === 'PROFESSIONAL') ? '/alumni-dashboard'
-    : '/dashboard'
+  const homeHref = role ? dashboardMap[role] : '/dashboard'
 
   const homeItem: NavConfig = { icon: Home, label: 'Home', href: homeHref }
 

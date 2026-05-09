@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { MessageSquare, Calendar, Briefcase, Link as LinkIcon } from 'lucide-react'
 import { DashboardLayout, C, AvatarCircle, useDarkMode } from '@/components/layouts/DashboardLayout'
 import { useAuth } from '@/hooks/useAuth'
-import { useIncomingRequests, useMyMentees, useUpdateMentorshipStatus } from '@/hooks/useMentorship'
+import { useIncomingRequests, useMyMentees, useUpdateMentorshipStatus, useMentorshipStats } from '@/hooks/useMentorship'
+import { useDashboardStats } from '@/hooks/useDashboard'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/api'
 
@@ -37,14 +38,15 @@ function SegmentedProgress({ value, total, color = C.lavender }: { value: number
   )
 }
 
-function AlumniHero({ firstName, greeting, activeCount, pendingCount }: {
+function AlumniHero({ firstName, greeting, activeCount, pendingCount, totalSessions, unreadMessages }: {
   firstName: string; greeting: string; activeCount: number; pendingCount: number
+  totalSessions: number; unreadMessages: number
 }) {
   const stats = [
     { label: 'Active Mentees', value: activeCount,    bg: C.mint,   text: C.charcoal },
     { label: 'Pending',        value: pendingCount,   bg: C.orange, text: C.white },
-    { label: 'Messages',       value: 0,              bg: C.white,  text: C.charcoal },
-    { label: 'Sessions',       value: activeCount * 2, bg: C.white,  text: C.charcoal },
+    { label: 'Messages',       value: unreadMessages, bg: C.white,  text: C.charcoal },
+    { label: 'Sessions',       value: totalSessions,  bg: C.white,  text: C.charcoal },
   ]
   return (
     <div style={{ position: 'relative', borderRadius: 24, overflow: 'hidden', height: 200, marginBottom: 28 }}>
@@ -188,9 +190,11 @@ function AlumniDashboardContent() {
   const { data: requests = [], isLoading: requestsLoading } = useIncomingRequests()
   const { data: mentees = [], isLoading: menteesLoading } = useMyMentees()
   const updateStatus = useUpdateMentorshipStatus()
+  const { data: mentorshipStats } = useMentorshipStats()
+  const { data: dashboardStats } = useDashboardStats()
 
-  const pending = requests.filter((m) => m.status === 'PENDING')
-  const active  = mentees.filter((m) => m.status === 'ACTIVE')
+  const pending = requests.filter((m) => m.status.toLowerCase() === 'pending')
+  const active  = mentees.filter((m) => m.status.toLowerCase() === 'active')
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'there'
   const hour = new Date().getHours()
@@ -222,7 +226,14 @@ function AlumniDashboardContent() {
   return (
     <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <AlumniHero firstName={firstName} greeting={greeting} activeCount={active.length} pendingCount={pending.length} />
+        <AlumniHero
+          firstName={firstName}
+          greeting={greeting}
+          activeCount={active.length}
+          pendingCount={pending.length}
+          totalSessions={mentorshipStats?.as_mentor.total_sessions ?? 0}
+          unreadMessages={dashboardStats?.messages_unread ?? 0}
+        />
 
         {/* Pending Requests */}
         <div style={{ marginBottom: 28 }}>

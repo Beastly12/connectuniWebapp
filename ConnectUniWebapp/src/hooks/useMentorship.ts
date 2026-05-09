@@ -20,6 +20,9 @@ export interface MentorProfile {
   availability_slots: Record<string, unknown>[] | null
   max_mentees: number
   is_active: boolean
+  average_rating: number | null
+  total_reviews: number
+  match_percentage: number | null
   created_at: string
   updated_at: string
 }
@@ -34,7 +37,7 @@ export interface MentorshipRequest {
   meeting_frequency: string
   session_length_minutes: number
   message: string
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED'
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
   created_at: string
 }
 
@@ -50,6 +53,7 @@ export interface MentorshipRelationship {
   status: 'ACTIVE' | 'ENDED'
   started_at: string
   ended_at: string | null
+  progress_percentage: number
 }
 
 export interface MentorshipSession {
@@ -61,7 +65,86 @@ export interface MentorshipSession {
   created_at: string
 }
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
+export interface MentorshipMilestone {
+  id: number
+  title: string
+  description: string | null
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+  sort_order: number
+  target_date: string | null
+  completed_date: string | null
+}
+
+export interface MentorshipResource {
+  id: number
+  title: string
+  category: string
+  url: string
+  note: string | null
+  created_at: string
+}
+
+export interface MentorshipReview {
+  id: number
+  rating: number
+  review_text: string | null
+  reviewer_name: string
+  created_at: string
+}
+
+export interface MentorRating {
+  user_id: number
+  average_rating: number
+  total_reviews: number
+}
+
+export interface MentorshipStats {
+  as_mentee: {
+    total_mentors: number
+    active_mentors: number
+    total_sessions: number
+    completed_sessions: number
+    pending_requests: number
+  }
+  as_mentor: {
+    total_mentees: number
+    active_mentees: number
+    total_sessions: number
+    pending_requests: number
+  }
+}
+
+export interface MyMentorResponse {
+  relationship_id: number
+  mentor_id: number
+  mentor: MentorUserSummary & { bio?: string | null; expertise_areas?: string[] }
+  goal: string
+  meeting_frequency: string
+  session_length_minutes: number
+  status: string
+  started_at: string
+  ended_at: string | null
+  progress_percentage: number
+  milestones: { total: number; completed: number }
+  next_session: { id: number; scheduled_at: string } | null
+}
+
+export interface MyMenteeResponse {
+  relationship_id: number
+  mentee_id: number
+  mentee: MentorUserSummary
+  goal: string
+  meeting_frequency: string
+  session_length_minutes: number
+  status: string
+  started_at: string
+  ended_at: string | null
+  progress_percentage: number
+  milestones: { total: number; completed: number }
+  next_session: { id: number; scheduled_at: string } | null
+}
+
+// ─── Mentor Discovery ─────────────────────────────────────────────────────────
 
 export function useMentors(filters?: { skills?: string; goals?: string; university?: string }) {
   return useQuery({
@@ -74,6 +157,32 @@ export function useMentors(filters?: { skills?: string; goals?: string; universi
       }),
   })
 }
+
+export function useMentorPublicProfile(userId?: number) {
+  return useQuery({
+    queryKey: ['mentor-public', userId],
+    enabled: !!userId,
+    queryFn: () => api.get<MentorProfile>(`/mentorship/mentors/${userId}`),
+  })
+}
+
+export function useMentorReviews(userId?: number) {
+  return useQuery({
+    queryKey: ['mentor-reviews', userId],
+    enabled: !!userId,
+    queryFn: () => api.get<MentorshipReview[]>(`/mentorship/mentors/${userId}/reviews`),
+  })
+}
+
+export function useMentorRating(userId?: number) {
+  return useQuery({
+    queryKey: ['mentor-rating', userId],
+    enabled: !!userId,
+    queryFn: () => api.get<MentorRating>(`/mentorship/mentors/${userId}/rating`),
+  })
+}
+
+// ─── My Mentor Profile ────────────────────────────────────────────────────────
 
 export function useMyMentorProfile() {
   return useQuery({
@@ -116,7 +225,6 @@ export function useEnsureMentorProfile() {
         if (error instanceof ApiError && error.status === 404) {
           return api.post<MentorProfile>('/mentorship/become-mentor', data)
         }
-
         throw error
       }
     },
@@ -166,8 +274,19 @@ export function useSendMentorshipRequest() {
       meeting_frequency: string
       session_length_minutes: number
       message: string
-    }) => api.post<MentorshipRequest>('/mentorship/requests', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['mentorship-requests-out'] }),
+    }) => {
+      const fd = new FormData()
+      fd.append('mentor_id', String(data.mentor_id))
+      fd.append('goal', data.goal)
+      fd.append('meeting_frequency', data.meeting_frequency)
+      fd.append('session_length_minutes', String(data.session_length_minutes))
+      fd.append('message', data.message)
+      return api.postForm<MentorshipRequest>('/mentorship/requests', fd)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mentorship-requests-out'] })
+      qc.invalidateQueries({ queryKey: ['my-mentors-rich'] })
+    },
   })
 }
 
@@ -179,6 +298,8 @@ export function useAcceptRequest() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mentorship-requests-in'] })
       qc.invalidateQueries({ queryKey: ['my-mentees'] })
+      qc.invalidateQueries({ queryKey: ['my-mentees-rich'] })
+      qc.invalidateQueries({ queryKey: ['mentorship-stats'] })
     },
   })
 }
@@ -196,7 +317,10 @@ export function useCancelRequest() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (requestId: number) => api.delete(`/mentorship/requests/${requestId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['mentorship-requests-out'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mentorship-requests-out'] })
+      qc.invalidateQueries({ queryKey: ['my-mentors-rich'] })
+    },
   })
 }
 
@@ -216,6 +340,22 @@ export function useMyMentors() {
   })
 }
 
+/** Rich version with milestone summary and next session */
+export function useMyMentorsRich() {
+  return useQuery({
+    queryKey: ['my-mentors-rich'],
+    queryFn: () => api.get<MyMentorResponse[]>('/mentorship/my-mentors'),
+  })
+}
+
+/** Rich version with milestone summary and next session */
+export function useMyMenteesRich() {
+  return useQuery({
+    queryKey: ['my-mentees-rich'],
+    queryFn: () => api.get<MyMenteeResponse[]>('/mentorship/my-mentees'),
+  })
+}
+
 export function useEndRelationship() {
   const qc = useQueryClient()
   return useMutation({
@@ -223,7 +363,9 @@ export function useEndRelationship() {
       api.patch<MentorshipRelationship>(`/mentorship/relationships/${relationshipId}/end`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-mentors'] })
+      qc.invalidateQueries({ queryKey: ['my-mentors-rich'] })
       qc.invalidateQueries({ queryKey: ['my-mentees'] })
+      qc.invalidateQueries({ queryKey: ['my-mentees-rich'] })
     },
   })
 }
@@ -251,8 +393,141 @@ export function useCreateSession() {
         `/mentorship/relationships/${relationshipId}/sessions`,
         { scheduled_at, notes }
       ),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['sessions', vars.relationshipId] })
+      qc.invalidateQueries({ queryKey: ['my-mentors-rich'] })
+      qc.invalidateQueries({ queryKey: ['my-mentees-rich'] })
+    },
+  })
+}
+
+export function useUpdateSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ relationshipId, sessionId, data }: {
+      relationshipId: number
+      sessionId: number
+      data: { scheduled_at?: string; notes?: string; status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' }
+    }) =>
+      api.patch<MentorshipSession>(
+        `/mentorship/relationships/${relationshipId}/sessions/${sessionId}`,
+        data
+      ),
     onSuccess: (_d, vars) =>
       qc.invalidateQueries({ queryKey: ['sessions', vars.relationshipId] }),
+  })
+}
+
+// ─── Milestones ───────────────────────────────────────────────────────────────
+
+export function useMilestones(relationshipId?: number) {
+  return useQuery({
+    queryKey: ['milestones', relationshipId],
+    enabled: !!relationshipId,
+    queryFn: () =>
+      api.get<MentorshipMilestone[]>(`/mentorship/relationships/${relationshipId}/milestones`),
+  })
+}
+
+export function useCreateMilestone() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ relationshipId, ...data }: {
+      relationshipId: number
+      title: string
+      description?: string
+      target_date?: string
+    }) =>
+      api.post<MentorshipMilestone>(
+        `/mentorship/relationships/${relationshipId}/milestones`,
+        data
+      ),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['milestones', vars.relationshipId] }),
+  })
+}
+
+export function useUpdateMilestone() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ milestoneId, relationshipId, ...data }: {
+      milestoneId: number
+      relationshipId: number
+      title?: string
+      status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+      description?: string
+      target_date?: string
+    }) =>
+      api.put<MentorshipMilestone>(`/mentorship/milestones/${milestoneId}`, data),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['milestones', vars.relationshipId] }),
+  })
+}
+
+export function useDeleteMilestone() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ milestoneId, relationshipId }: { milestoneId: number; relationshipId: number }) =>
+      api.delete(`/mentorship/milestones/${milestoneId}`),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['milestones', vars.relationshipId] }),
+  })
+}
+
+// ─── Resources ────────────────────────────────────────────────────────────────
+
+export function useResources(relationshipId?: number) {
+  return useQuery({
+    queryKey: ['resources', relationshipId],
+    enabled: !!relationshipId,
+    queryFn: () =>
+      api.get<MentorshipResource[]>(`/mentorship/relationships/${relationshipId}/resources`),
+  })
+}
+
+export function useShareResource() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ relationshipId, ...data }: {
+      relationshipId: number
+      title: string
+      category: string
+      url: string
+      note?: string
+    }) =>
+      api.post<MentorshipResource>(
+        `/mentorship/relationships/${relationshipId}/resources`,
+        data
+      ),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['resources', vars.relationshipId] }),
+  })
+}
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export function useLeaveReview() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ relationshipId, rating, review_text }: {
+      relationshipId: number
+      rating: number
+      review_text?: string
+    }) =>
+      api.post<MentorshipReview>(
+        `/mentorship/relationships/${relationshipId}/review`,
+        { rating, review_text }
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['mentor-rating'] }),
+  })
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+export function useMentorshipStats() {
+  return useQuery({
+    queryKey: ['mentorship-stats'],
+    queryFn: () => api.get<MentorshipStats>('/mentorship/stats/me'),
   })
 }
 
@@ -277,7 +552,9 @@ export function useUpdateMentorshipStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mentorship-requests-in'] })
       qc.invalidateQueries({ queryKey: ['my-mentees'] })
+      qc.invalidateQueries({ queryKey: ['my-mentees-rich'] })
       qc.invalidateQueries({ queryKey: ['my-mentors'] })
+      qc.invalidateQueries({ queryKey: ['my-mentors-rich'] })
     },
   })
 }

@@ -1,40 +1,67 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Toaster } from 'sonner'
-import { ProtectedRoute } from '@/components/layouts/ProtectedRoute'
-import { OnboardingGuard } from '@/components/layouts/OnboardingGuard'
-import { GuestRoute } from '@/components/layouts/GuestRoute'
 
-import LandingPage from '@/pages/LandingPage'
-import LoginPage from '@/pages/LoginPage'
-import SignupPage from '@/pages/SignupPage'
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
-import CheckEmailPage from '@/pages/auth/CheckEmailPage'
-import EmailVerificationPage from '@/pages/auth/EmailVerificationPage'
-import ProfileSetupPage from '@/pages/onboarding/ProfileSetupPage'
-import MentorshipPrefsPage from '@/pages/onboarding/MentorshipPrefsPage'
-import StudentDashboard from '@/pages/StudentDashboard'
-import AlumniDashboard from '@/pages/AlumniDashboard'
-import AdminDashboard from '@/pages/AdminDashboard'
-import MentorshipPage from '@/pages/MentorshipPage'
-import MessagesPage from '@/pages/MessagesPage'
-import CommunityPage from '@/pages/CommunityPage'
-import NotificationsPage from '@/pages/NotificationsPage'
-import EventsPage from '@/pages/EventsPage'
-import CareersPage from '@/pages/CareersPage'
-import ProfilePage from '@/pages/ProfilePage'
-import SettingsPage from '@/pages/SettingsPage'
-import ResourcesPage from '@/pages/ResourcesPage'
+type BackendRole = 'STUDENT' | 'ALUMNI' | 'MENTOR' | 'ADMIN' | 'PROFESSIONAL'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60,
-      retry: 1,
-    },
-  },
-})
+const LandingPage = lazy(() => import('@/pages/LandingPage'))
+const AppProviders = lazy(() => import('@/components/layouts/AppProviders').then((m) => ({ default: m.AppProviders })))
+const ProtectedRoute = lazy(() => import('@/components/layouts/ProtectedRoute').then((m) => ({ default: m.ProtectedRoute })))
+const OnboardingGuard = lazy(() => import('@/components/layouts/OnboardingGuard').then((m) => ({ default: m.OnboardingGuard })))
+const GuestRoute = lazy(() => import('@/components/layouts/GuestRoute').then((m) => ({ default: m.GuestRoute })))
+const LoginPage = lazy(() => import('@/pages/LoginPage'))
+const SignupPage = lazy(() => import('@/pages/SignupPage'))
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'))
+const CheckEmailPage = lazy(() => import('@/pages/auth/CheckEmailPage'))
+const EmailVerificationPage = lazy(() => import('@/pages/auth/EmailVerificationPage'))
+const ProfileSetupPage = lazy(() => import('@/pages/onboarding/ProfileSetupPage'))
+const MentorshipPrefsPage = lazy(() => import('@/pages/onboarding/MentorshipPrefsPage'))
+const StudentDashboard = lazy(() => import('@/pages/StudentDashboard'))
+const AlumniDashboard = lazy(() => import('@/pages/AlumniDashboard'))
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
+const MentorshipPage = lazy(() => import('@/pages/MentorshipPage'))
+const MessagesPage = lazy(() => import('@/pages/MessagesPage'))
+const CommunityPage = lazy(() => import('@/pages/CommunityPage'))
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
+const EventsPage = lazy(() => import('@/pages/EventsPage'))
+const CareersPage = lazy(() => import('@/pages/CareersPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+const ResourcesPage = lazy(() => import('@/pages/ResourcesPage'))
+
+const dashboardMap: Record<BackendRole, string> = {
+  STUDENT: '/dashboard',
+  ALUMNI: '/alumni-dashboard',
+  MENTOR: '/alumni-dashboard',
+  PROFESSIONAL: '/alumni-dashboard',
+  ADMIN: '/admin',
+}
+
+function roleFromStoredToken(): BackendRole | null {
+  const token = localStorage.getItem('access_token')
+  if (!token) return null
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof payload?.role === 'string' ? payload.role as BackendRole : null
+  } catch {
+    return null
+  }
+}
+
+function LandingRoute() {
+  const role = roleFromStoredToken()
+
+  if (role) {
+    return <Navigate to={dashboardMap[role] ?? '/dashboard'} replace />
+  }
+
+  return <LandingPage />
+}
+
+function withAppProviders(children: ReactNode) {
+  return <AppProviders>{children}</AppProviders>
+}
 
 export default function App() {
   useEffect(() => {
@@ -47,166 +74,165 @@ export default function App() {
   }, [])
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+    <BrowserRouter>
+      <Suspense fallback={null}>
         <Routes>
           {/* ── Public routes (guest only) ── */}
-          <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
-          <Route path="/signup" element={<GuestRoute><SignupPage /></GuestRoute>} />
-          <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
-          <Route path="/auth/check-email" element={<CheckEmailPage />} />
-          <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
+          <Route path="/login" element={<AppProviders><GuestRoute><LoginPage /></GuestRoute></AppProviders>} />
+          <Route path="/signup" element={<AppProviders><GuestRoute><SignupPage /></GuestRoute></AppProviders>} />
+          <Route path="/forgot-password" element={<AppProviders><GuestRoute><ForgotPasswordPage /></GuestRoute></AppProviders>} />
+          <Route path="/auth/check-email" element={<AppProviders><CheckEmailPage /></AppProviders>} />
+          <Route path="/auth/verify-email" element={<AppProviders><EmailVerificationPage /></AppProviders>} />
 
           {/* ── Onboarding routes (auth required, no onboarding guard) ── */}
           <Route
             path="/onboarding/profile"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <ProfileSetupPage />
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/onboarding/mentorship"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <MentorshipPrefsPage />
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
 
           {/* ── Student dashboard ── */}
           <Route
             path="/dashboard"
-            element={
+            element={withAppProviders(
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <OnboardingGuard>
                   <StudentDashboard />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
 
           {/* ── Alumni / Professional / Mentor dashboard ── */}
           <Route
             path="/alumni-dashboard"
-            element={
+            element={withAppProviders(
               <ProtectedRoute allowedRoles={['ALUMNI', 'MENTOR', 'PROFESSIONAL']}>
                 <OnboardingGuard>
                   <AlumniDashboard />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
 
           {/* ── Admin dashboard ── */}
           <Route
             path="/admin"
-            element={
+            element={withAppProviders(
               <ProtectedRoute allowedRoles={['ADMIN']}>
                 <AdminDashboard />
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
 
           {/* ── Shared authenticated routes ── */}
           <Route
             path="/mentorship"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <MentorshipPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/messages"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <MessagesPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/community"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <CommunityPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/notifications"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <NotificationsPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/events"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <EventsPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/careers"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <CareersPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/resources"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <ResourcesPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/profile"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <ProfilePage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
           <Route
             path="/settings"
-            element={
+            element={withAppProviders(
               <ProtectedRoute>
                 <OnboardingGuard>
                   <SettingsPage />
                 </OnboardingGuard>
-              </ProtectedRoute>
-            }
+              </ProtectedRoute>,
+            )}
           />
 
           {/* ── Landing / Catch-all ── */}
-          <Route path="/" element={<GuestRoute><LandingPage /></GuestRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="/" element={<LandingRoute />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
-      <Toaster richColors position="top-right" />
-    </QueryClientProvider>
   )
 }

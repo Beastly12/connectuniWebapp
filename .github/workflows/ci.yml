@@ -1,34 +1,33 @@
-name: Deploy Frontend
+name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, master]
+  pull_request:
 
 jobs:
-  deploy:
+  build-and-e2e:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ConnectUniWebapp
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
+          cache: npm
           cache-dependency-path: ConnectUniWebapp/package-lock.json
 
       - name: Install dependencies
-        working-directory: ConnectUniWebapp
         run: npm ci
 
       - name: Build
-        working-directory: ConnectUniWebapp
         run: npm run build
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Cypress E2E
         uses: cypress-io/github-action@v6
@@ -51,20 +50,3 @@ jobs:
           name: cypress-screenshots
           path: ConnectUniWebapp/cypress/screenshots
           if-no-files-found: ignore
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Sync to S3
-        run: |
-          aws s3 sync ConnectUniWebapp/dist/ s3://${{ secrets.S3_BUCKET }} --delete
-
-      - name: Invalidate CloudFront cache
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
