@@ -467,7 +467,7 @@ export function useUpdateMilestone() {
 export function useDeleteMilestone() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ milestoneId, relationshipId }: { milestoneId: number; relationshipId: number }) =>
+    mutationFn: ({ milestoneId }: { milestoneId: number; relationshipId: number }) =>
       api.delete(`/mentorship/milestones/${milestoneId}`),
     onSuccess: (_d, vars) =>
       qc.invalidateQueries({ queryKey: ['milestones', vars.relationshipId] }),

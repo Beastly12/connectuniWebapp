@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import type { Comment } from '@/lib/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -179,5 +180,37 @@ export function useToggleReaction() {
       ),
     onSuccess: (_d, vars) =>
       qc.invalidateQueries({ queryKey: ['community-messages', vars.communityId] }),
+  })
+}
+
+// ─── Posts ─────────────────────────────────────────────────────────────────────
+
+export function useComments(postId: string) {
+  return useQuery({
+    queryKey: ['comments', postId],
+    enabled: !!postId,
+    queryFn: () => api.get<Comment[]>(`/posts/${postId}/comments`),
+  })
+}
+
+export function useAddComment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ postId, authorId, content }: { postId: string; authorId: string; content: string }) =>
+      api.post<Comment>(`/posts/${postId}/comments`, { author_id: authorId, content }),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['comments', vars.postId] }),
+  })
+}
+
+export function useToggleLike() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ postId, userId, hasLiked }: { postId: string; userId: string; hasLiked: boolean }) =>
+      hasLiked
+        ? api.delete(`/posts/${postId}/like`)
+        : api.post(`/posts/${postId}/like`, { user_id: userId }),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['posts', vars.postId] }),
   })
 }

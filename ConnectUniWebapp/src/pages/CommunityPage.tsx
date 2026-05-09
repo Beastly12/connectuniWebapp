@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
-  Home, Compass, Users, Calendar, MessageSquare, Bookmark,
+  Compass, Bookmark,
   Image, HelpCircle, Trophy, CalendarPlus, ArrowUpRight,
   Heart, MessageCircle, Share2, MoreHorizontal, Hash,
-  CheckCircle, Plus, TrendingUp, CornerDownRight,
+  CheckCircle, Plus, TrendingUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DashboardLayout } from '@/components/layouts/DashboardLayout'
@@ -339,8 +338,6 @@ function LeftRail({ activeId, myCommunities, onSelectCircle, onCreateCircle }: {
   onSelectCircle: (c: Community) => void
   onCreateCircle: () => void
 }) {
-  const navigate = useNavigate()
-
   // const navItems = [
   //   { icon: Home,           label: 'Feed',     active: true,  onClick: () => {} },
   //   { icon: Compass,        label: 'Explore',  active: false, onClick: () => {} },

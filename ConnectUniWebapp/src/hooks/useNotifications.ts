@@ -34,9 +34,17 @@ export function useNotifications(userId?: number) {
 
     ws.onmessage = (evt) => {
       try {
-        const msg = JSON.parse(evt.data) as { event: string }
+        const msg = JSON.parse(evt.data) as {
+          event: string
+          data?: { type?: string; reference_id?: number }
+        }
         if (msg.event === 'notification') {
           qc.invalidateQueries({ queryKey: ['notifications', userId] })
+          // Refresh DM queries when a message notification arrives
+          if (msg.data?.type === 'message') {
+            qc.invalidateQueries({ queryKey: ['direct-messages', msg.data.reference_id] })
+            qc.invalidateQueries({ queryKey: ['conversations'] })
+          }
         }
       } catch { /* ignore */ }
     }

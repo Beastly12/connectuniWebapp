@@ -1,21 +1,21 @@
 import { useState } from 'react'
 import {
   Search, X, ChevronLeft, ChevronRight, Star, Calendar, Plus,
-  Link as LinkIcon, BookOpen, CheckCircle, Clock, Users, Trash2,
+  Link as LinkIcon, BookOpen, CheckCircle, Users, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DashboardLayout, C, AvatarCircle, useDarkMode } from '@/components/layouts/DashboardLayout'
 import {
-  useMentors, useOutgoingRequests, useSendMentorshipRequest,
+  useMentors, useOutgoingRequests,
   useIncomingRequests, useMyMenteesRich, useMyMentorsRich,
   useAcceptRequest, useRejectRequest, useCancelRequest,
-  useSessions, useCreateSession, useUpdateSession,
+  useSessions, useCreateSession,
   useMilestones, useCreateMilestone, useUpdateMilestone, useDeleteMilestone,
   useResources, useShareResource,
   useMyMentorProfile, useBecomeMentor, useUpdateMentorProfile,
   useMentorshipStats, useLeaveReview,
 } from '@/hooks/useMentorship'
-import type { MentorProfile, MentorshipRelationship, MyMenteeResponse, MyMentorResponse, MentorshipSession } from '@/hooks/useMentorship'
+import type { MentorProfile, MyMenteeResponse, MyMentorResponse } from '@/hooks/useMentorship'
 import { MentorRequestDialog } from '@/components/mentorship/MentorRequestDialog'
 import { useAuth } from '@/hooks/useAuth'
 import { getErrorMessage } from '@/lib/api'
@@ -730,7 +730,7 @@ function MyMentorsView({ dark }: { dark: boolean }) {
   const bg = dark ? '#1A1A1A' : C.white
   const textColor = dark ? C.darkText : C.charcoal
 
-  const pending = outgoing.filter(r => r.status === 'PENDING')
+  const pending = outgoing.filter(r => r.status === 'pending')
   const active = mentorsRich.filter(m => m.status === 'ACTIVE')
   const ended = mentorsRich.filter(m => m.status === 'ENDED')
 
@@ -807,7 +807,7 @@ function ManageMenteesView({ dark }: { dark: boolean }) {
   const bg = dark ? '#1A1A1A' : C.white
   const textColor = dark ? C.darkText : C.charcoal
 
-  const pendingIncoming = incoming.filter(r => r.status === 'PENDING')
+  const pendingIncoming = incoming.filter(r => r.status === 'pending')
   const active = menteesRich.filter(m => m.status === 'ACTIVE')
   const ended = menteesRich.filter(m => m.status === 'ENDED')
 
