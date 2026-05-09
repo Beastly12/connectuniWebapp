@@ -100,7 +100,7 @@ function MsgBubble({
         </div>
         <div style={{
           fontSize: 10, color: C.tertiary, marginTop: 3,
-          textAlign: (isOwn ? 'right' : 'left') as const,
+          textAlign: (isOwn ? 'right' : 'left') as React.CSSProperties['textAlign'],
           paddingLeft: 4, paddingRight: 4,
         }}>
           {formatRelativeTime(time)}
