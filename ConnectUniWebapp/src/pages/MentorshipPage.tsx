@@ -368,8 +368,8 @@ function RelationshipCard({ rel, role, dark }: {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: rel.status === 'ACTIVE' ? 'rgba(58,154,64,0.12)' : 'rgba(0,0,0,0.06)', color: rel.status === 'ACTIVE' ? '#3A9A40' : C.secondary }}>
-              {rel.status}
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: rel.status?.toUpperCase() === 'ACTIVE' ? 'rgba(58,154,64,0.12)' : 'rgba(0,0,0,0.06)', color: rel.status?.toUpperCase() === 'ACTIVE' ? '#3A9A40' : C.secondary }}>
+              {rel.status ? rel.status.charAt(0).toUpperCase() + rel.status.slice(1).toLowerCase() : ''}
             </span>
             {rel.next_session && (
               <span style={{ fontSize: 11, color: C.tertiary, display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -399,7 +399,7 @@ function RelationshipCard({ rel, role, dark }: {
                 style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 100, border: `1.5px solid ${dark ? '#333' : C.border}`, background: 'transparent', color: dark ? C.darkText : C.charcoal, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                 <BookOpen style={{ width: 12, height: 12 }} /> Share Resource
               </button>
-              {role === 'mentee' && rel.status === 'ENDED' && (
+              {role === 'mentee' && rel.status?.toUpperCase() === 'ENDED' && (
                 <button onClick={() => setReviewOpen(true)}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px', borderRadius: 100, border: `1.5px solid ${C.orange}`, background: 'transparent', color: C.orange, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                   <Star style={{ width: 12, height: 12 }} /> Leave Review
@@ -731,8 +731,8 @@ function MyMentorsView({ dark }: { dark: boolean }) {
   const textColor = dark ? C.darkText : C.charcoal
 
   const pending = outgoing.filter(r => r.status === 'pending')
-  const active = mentorsRich.filter(m => m.status === 'ACTIVE')
-  const ended = mentorsRich.filter(m => m.status === 'ENDED')
+  const active = mentorsRich.filter(m => m.status?.toUpperCase() === 'ACTIVE')
+  const ended = mentorsRich.filter(m => m.status?.toUpperCase() === 'ENDED')
 
   return (
     <div>
@@ -808,8 +808,8 @@ function ManageMenteesView({ dark }: { dark: boolean }) {
   const textColor = dark ? C.darkText : C.charcoal
 
   const pendingIncoming = incoming.filter(r => r.status === 'pending')
-  const active = menteesRich.filter(m => m.status === 'ACTIVE')
-  const ended = menteesRich.filter(m => m.status === 'ENDED')
+  const active = menteesRich.filter(m => m.status?.toUpperCase() === 'ACTIVE')
+  const ended = menteesRich.filter(m => m.status?.toUpperCase() === 'ENDED')
 
   async function handleAccept(id: number) {
     try { await accept.mutateAsync(id); toast.success('Request accepted! New mentee added.') } catch (error) {
