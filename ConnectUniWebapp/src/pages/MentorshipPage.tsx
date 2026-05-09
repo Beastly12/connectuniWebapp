@@ -358,13 +358,15 @@ function RelationshipCard({ rel, role, dark }: {
           onClick={() => setExpanded(e => !e)}
           style={{ padding: '18px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
         >
-          <AvatarCircle name={person.full_name} size={48} />
+          <AvatarCircle name={person.name} size={48} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: textColor }}>{person.full_name}</div>
-            <div style={{ fontSize: 12, color: C.secondary, marginBottom: 6 }}>{person.university_name} · {rel.goal}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: textColor }}>{person.name}</div>
+            <div style={{ fontSize: 12, color: C.secondary, marginBottom: 6 }}>
+              {[person.job_title, person.company].filter(Boolean).join(' at ') || person.role}
+            </div>
             <ProgressBar value={progress} dark={dark} />
             <div style={{ fontSize: 11, color: C.tertiary, marginTop: 4 }}>
-              {progress}% complete · {completedMilestones.length}/{milestones.length || rel.milestones?.total || 0} milestones
+              {progress}% complete · {completedMilestones.length}/{milestones.length || rel.milestone_summary?.total || 0} milestones
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
@@ -483,7 +485,7 @@ function RelationshipCard({ rel, role, dark }: {
       {reviewOpen && role === 'mentee' && (
         <LeaveReviewModal
           relationshipId={rel.relationship_id}
-          mentorName={(rel as MyMentorResponse).mentor.full_name}
+          mentorName={(rel as MyMentorResponse).mentor.name}
           dark={dark}
           onClose={() => setReviewOpen(false)}
         />

@@ -114,34 +114,40 @@ export interface MentorshipStats {
   }
 }
 
+export interface RelationshipUserSummary {
+  user_id: number
+  name: string
+  role: string
+  job_title: string | null
+  company: string | null
+  avatar_url: string | null
+  verification_status: string
+}
+
+export interface MilestoneSummary {
+  total: number
+  completed: number
+  in_progress: number
+}
+
 export interface MyMentorResponse {
   relationship_id: number
-  mentor_id: number
-  mentor: MentorUserSummary & { bio?: string | null; expertise_areas?: string[] }
-  goal: string
-  meeting_frequency: string
-  session_length_minutes: number
+  mentor: RelationshipUserSummary
   status: string
   started_at: string
-  ended_at: string | null
   progress_percentage: number
-  milestones: { total: number; completed: number }
   next_session: { id: number; scheduled_at: string } | null
+  milestone_summary: MilestoneSummary
 }
 
 export interface MyMenteeResponse {
   relationship_id: number
-  mentee_id: number
-  mentee: MentorUserSummary
-  goal: string
-  meeting_frequency: string
-  session_length_minutes: number
+  mentee: RelationshipUserSummary
   status: string
   started_at: string
-  ended_at: string | null
   progress_percentage: number
-  milestones: { total: number; completed: number }
   next_session: { id: number; scheduled_at: string } | null
+  milestone_summary: MilestoneSummary
 }
 
 // ─── Mentor Discovery ─────────────────────────────────────────────────────────
