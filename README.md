@@ -8,7 +8,7 @@ Frontend web application for ConnectUni — a university networking platform tha
 ![TanStack Query](https://img.shields.io/badge/TanStack_Query-Data_Fetching-FF4154)
 ![AWS](https://img.shields.io/badge/AWS-Deployed-FF9900)
 
-## 🚀 Live Demo
+## 🚀 Live Demo(Temporarily down working on it )
 
 ### Production Application
 
